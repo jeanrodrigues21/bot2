@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento - Trading Bot</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <div class="header-content">
+                <h1>🛡️ Painel de Gerenciamento</h1>
+                <p>Administração do Sistema de Trading</p>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="btn btn-secondary">🌙 Tema Dark</button>
+                <button id="logoutBtn" class="btn btn-danger">Sair</button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="users">👥 Usuários</button>
+            <button class="tab-btn" data-tab="pending">⏳ Pendentes</button>
+            <button class="tab-btn" data-tab="active">🟢 Ativos</button>
+            <button class="tab-btn" data-tab="stats">📊 Estatísticas</button>
+        </div>
+
+        <!-- Aba Usuários -->
+        <div class="tab-content active" id="users-tab">
+            <div class="section-header">
+                <h2>Todos os Usuários</h2>
+                <button id="createUserBtn" class="btn btn-primary">➕ Criar Usuário</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="usersTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuário</th>
+                            <th>E-mail</th>
+                            <th>Função</th>
+                            <th>Status</th>
+                            <th>Cadastro</th>
+                            <th>Último Acesso</th>
+                            <th>Acessos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Aba Pendentes -->
+        <div class="tab-content" id="pending-tab">
+            <div class="section-header">
+                <h2>Usuários Pendentes de Aprovação</h2>
+            </div>
+            
+            <div class="pending-list" id="pendingList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Carregando usuários pendentes...
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Ativos -->
+        <div class="tab-content" id="active-tab">
+            <div class="section-header">
+                <h2>Usuários Ativos Online</h2>
+                <button id="refreshActiveBtn" class="btn btn-secondary">🔄 Atualizar</button>
+            </div>
+            
+            <div class="active-list" id="activeList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Carregando usuários ativos...
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Estatísticas -->
+        <div class="tab-content" id="stats-tab">
+            <div class="section-header">
+                <h2>Estatísticas do Sistema</h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalUsers">0</div>
+                        <div class="stat-label">Total de Usuários</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="approvedUsers">0</div>
+                        <div class="stat-label">Usuários Aprovados</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="pendingUsers">0</div>
+                        <div class="stat-label">Aguardando Aprovação</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🟢</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="activeUsers">0</div>
+                        <div class="stat-label">Usuários Online</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Criação/Edição de Usuário -->
+        <div id="userModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Criar Usuário</h3>
+                    <button id="modalCloseBtn" class="modal-close">&times;</button>
+                </div>
+                
+                <form id="userForm" class="user-form">
+                    <input type="hidden" id="userId">
+                    
+                    <div class="form-group">
+                        <label for="username">Usuário</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password">
+                        <small class="form-hint">Deixe em branco para manter a senha atual (apenas edição)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="role">Função</label>
+                        <select id="role" required>
+                            <option value="user">Usuário</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="approved">
+                            <span class="checkmark"></span>
+                            Usuário Aprovado
+                        </label>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" id="cancelBtn" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="loading" id="adminLoading" style="display: none;">
+            <div class="spinner"></div>
+            Processando...
+        </div>
+    </div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

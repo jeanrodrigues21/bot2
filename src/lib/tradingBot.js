@@ -642,6 +642,27 @@ export default class TradingBot {
     return false;
   }
   
+  // CORRIGIDO: Calcular valor do trade baseado na configuração de estratégia
+  calculateTradeAmount(usdtBalance) {
+    // Se a estratégia de reforço estiver desabilitada, usar o valor configurado diretamente
+    if (!this.config.enableReinforcement) {
+      this.log('info', `Estratégia de reforço desabilitada - usando valor fixo: $${this.config.tradeAmountUsdt}`);
+      return Math.min(this.config.tradeAmountUsdt, usdtBalance * 0.99);
+    }
+    
+    // Se a estratégia de reforço estiver habilitada, usar alocação
+    try {
+      const allocation = this.config.calculateAllocation(usdtBalance);
+      const tradeAmount = allocation.originalStrategy * 0.99; // 99% para margem de taxas
+      
+      this.log('info', `Estratégia de reforço habilitada - usando alocação: $${tradeAmount.toFixed(2)} (${this.config.originalStrategyPercent}% do saldo)`);
+      return tradeAmount;
+    } catch (error) {
+      this.log('error', `Erro ao calcular alocação, usando valor fixo: ${error.message}`);
+      return Math.min(this.config.tradeAmountUsdt, usdtBalance * 0.99);
+    }
+  }
+  
   async executeBuy(symbol = null) {
     // Verificar se já está executando um trade
     if (this.isExecutingTrade) {
@@ -670,15 +691,19 @@ export default class TradingBot {
         return;
       }
       
-      // Calcular alocação baseada na estratégia
-      const allocation = this.config.calculateAllocation(usdtBalance);
-      const tradeAmount = allocation.originalStrategy * 0.99; // Usar 99% para deixar margem para taxas
+      // CORRIGIDO: Calcular valor do trade baseado na configuração
+      const tradeAmount = this.calculateTradeAmount(usdtBalance);
+      
+      if (tradeAmount < 5) {
+        this.log('warn', `Valor de trade muito baixo: ${tradeAmount.toFixed(2)} USDT`);
+        return;
+      }
       
       // Obter preço atual da moeda específica
       const currentPrice = await this.api.getCurrentPrice(targetSymbol);
       let quantity = tradeAmount / currentPrice;
       
-      this.log('info', `Executando compra de ${targetSymbol} com ${tradeAmount.toFixed(2)} USDT (${this.config.originalStrategyPercent}% do saldo)`);
+      this.log('info', `Executando compra de ${targetSymbol} com ${tradeAmount.toFixed(2)} USDT`);
       
       // Executar ordem real
       const order = await this.api.placeOrder('BUY', quantity, null, 'MARKET', targetSymbol);
@@ -1312,8 +1337,16 @@ export default class TradingBot {
       this.log('info', `Meta de lucro: ${this.config.dailyProfitTarget}%`);
       this.log('info', `Stop loss: ${this.config.stopLossPercent}%`);
       this.log('info', `Max trades/dia: ${this.config.maxDailyTrades}`);
-      this.log('info', `Estratégia Original: ${this.config.originalStrategyPercent}%`);
-      this.log('info', `Estratégia de Reforço: ${this.config.reinforcementStrategyPercent}%`);
+      
+      // Log da configuração de estratégia
+      if (this.config.enableReinforcement) {
+        this.log('info', `Estratégia de Reforço: HABILITADA`);
+        this.log('info', `Estratégia Original: ${this.config.originalStrategyPercent}%`);
+        this.log('info', `Estratégia de Reforço: ${this.config.reinforcementStrategyPercent}%`);
+      } else {
+        this.log('info', `Estratégia de Reforço: DESABILITADA`);
+        this.log('info', `Valor fixo por trade: $${this.config.tradeAmountUsdt}`);
+      }
       
       // Validar configurações
       this.config.validate();
@@ -1384,9 +1417,13 @@ export default class TradingBot {
           this.log('warn', `Saldo USDT baixo para realizar trades: $ ${usdtBalance.toFixed(2)}`);
         }
         
-        // Mostrar alocação de estratégias
-        const allocation = this.config.calculateAllocation(usdtBalance);
-        this.log('info', `Alocação - Original: $${allocation.originalStrategy.toFixed(2)} | Reforço: $${allocation.reinforcementStrategy.toFixed(2)}`);
+        // Mostrar alocação baseada na configuração
+        if (this.config.enableReinforcement) {
+          const allocation = this.config.calculateAllocation(usdtBalance);
+          this.log('info', `Alocação - Original: $${allocation.originalStrategy.toFixed(2)} | Reforço: $${allocation.reinforcementStrategy.toFixed(2)}`);
+        } else {
+          this.log('info', `Valor fixo por trade: $${this.config.tradeAmountUsdt}`);
+        }
         
         // Atualizar saldos no banco
         await this.balanceManager.updateProductionBalance();

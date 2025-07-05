@@ -148,6 +148,14 @@ export default class TradingConfig {
   
   // CORRIGIDO: Calcular valores de alocação baseados no saldo total
   calculateAllocation(totalUsdtBalance) {
+    if (!totalUsdtBalance || totalUsdtBalance <= 0) {
+      return {
+        originalStrategy: 0,
+        reinforcementStrategy: 0,
+        total: 0
+      };
+    }
+    
     const originalAmount = (totalUsdtBalance * this.originalStrategyPercent) / 100;
     const reinforcementAmount = (totalUsdtBalance * this.reinforcementStrategyPercent) / 100;
     

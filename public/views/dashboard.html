@@ -211,9 +211,36 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="tradeAmount">Valor por Trade (USDT)</label>
-                            <input type="number" id="tradeAmount" step="0.01" min="1">
+                            <label for="tradeAmountPercent">Porcentagem do Saldo por Trade (%)</label>
+                            <input type="number" id="tradeAmountPercent" step="0.1" min="0.1" max="100" value="10">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                💡 Porcentagem do saldo USDT total a ser usado em cada trade (1% a 100%)
+                            </small>
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="minTradeAmountUsdt">Valor Mínimo por Trade (USDT)</label>
+                            <input type="number" id="minTradeAmountUsdt" step="0.01" min="1" value="5">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                Valor mínimo em USDT mesmo que a porcentagem resulte em menos
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="maxTradeAmountUsdt">Valor Máximo por Trade (USDT)</label>
+                            <input type="number" id="maxTradeAmountUsdt" step="0.01" min="10" value="10000">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                Valor máximo em USDT mesmo que a porcentagem resulte em mais
+                            </small>
+                        </div>
+                        
+                        <div class="trade-preview" style="margin-top: 15px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h5 style="margin-bottom: 8px; color: var(--text-primary); font-size: 14px;">Prévia do Valor de Trade:</h5>
+                            <div id="tradePreview" style="font-size: 13px; color: var(--text-secondary);">
+                                Configure os valores acima para ver a prévia
+                            </div>
+                        </div>
+                        
                         <div class="form-group">
                             <label for="dailyProfit">Meta Lucro Diário (%)</label>
                             <input type="number" id="dailyProfit" step="0.01" min="0.1" max="10">

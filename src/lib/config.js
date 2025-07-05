@@ -21,7 +21,15 @@ export default class TradingConfig {
     this.dailyProfitTarget = 0.3;
     this.stopLossPercent = 1.5;
     this.minPriceChange = 0.5;
+    
+    // NOVO: Sistema de porcentagem do saldo
+    this.tradeAmountPercent = 10.0; // 10% do saldo por padrão
+    this.minTradeAmountUsdt = 5.0; // Valor mínimo em USDT
+    this.maxTradeAmountUsdt = 10000.0; // Valor máximo em USDT
+    
+    // Manter compatibilidade com valor fixo (será removido gradualmente)
     this.tradeAmountUsdt = 100.0;
+    
     this.maxDailyTrades = 3;
     
     // NOVAS CONFIGURAÇÕES - Trading Dinâmico
@@ -60,7 +68,15 @@ export default class TradingConfig {
     
     // Trading básico
     this.symbol = dbConfig.symbol || this.symbol;
+    
+    // NOVO: Sistema de porcentagem
+    this.tradeAmountPercent = dbConfig.tradeAmountPercent || this.tradeAmountPercent;
+    this.minTradeAmountUsdt = dbConfig.minTradeAmountUsdt || this.minTradeAmountUsdt;
+    this.maxTradeAmountUsdt = dbConfig.maxTradeAmountUsdt || this.maxTradeAmountUsdt;
+    
+    // Manter compatibilidade com valor fixo
     this.tradeAmountUsdt = dbConfig.tradeAmountUsdt || this.tradeAmountUsdt;
+    
     this.dailyProfitTarget = dbConfig.dailyProfitTarget || this.dailyProfitTarget;
     this.stopLossPercent = dbConfig.stopLossPercent || this.stopLossPercent;
     this.maxDailyTrades = dbConfig.maxDailyTrades || this.maxDailyTrades;
@@ -105,8 +121,8 @@ export default class TradingConfig {
       throw new Error('Secret Key parece estar incorreta (muito curta)');
     }
     
-    if (this.tradeAmountUsdt <= 0) {
-      throw new Error('Valor de trade deve ser positivo');
+    if (this.tradeAmountPercent <= 0 || this.tradeAmountPercent > 100) {
+      throw new Error('Porcentagem de trade deve estar entre 0.1% e 100%');
     }
     
     if (this.dailyProfitTarget <= 0) {
@@ -114,11 +130,11 @@ export default class TradingConfig {
     }
     
     // Validar alocação de estratégias
-    if (this.originalStrategyPercent + this.reinforcementStrategyPercent !== 100) {
+    if (this.enableReinforcement && this.originalStrategyPercent + this.reinforcementStrategyPercent !== 100) {
       throw new Error('A soma das porcentagens das estratégias deve ser 100%');
     }
     
-    if (this.originalStrategyPercent < 10 || this.originalStrategyPercent > 90) {
+    if (this.enableReinforcement && (this.originalStrategyPercent < 10 || this.originalStrategyPercent > 90)) {
       throw new Error('Estratégia original deve ter entre 10% e 90% do saldo');
     }
     
@@ -144,6 +160,27 @@ export default class TradingConfig {
       valid: issues.length === 0,
       issues
     };
+  }
+  
+  // NOVO: Calcular valor de trade baseado na porcentagem do saldo
+  calculateTradeAmount(totalUsdtBalance) {
+    if (!totalUsdtBalance || totalUsdtBalance <= 0) {
+      return this.minTradeAmountUsdt;
+    }
+    
+    // Calcular valor baseado na porcentagem
+    const calculatedAmount = (totalUsdtBalance * this.tradeAmountPercent) / 100;
+    
+    // Aplicar limites mínimo e máximo
+    const finalAmount = Math.max(
+      this.minTradeAmountUsdt,
+      Math.min(calculatedAmount, this.maxTradeAmountUsdt)
+    );
+    
+    // Garantir que não exceda o saldo disponível (deixar 1% de margem)
+    const maxAllowed = totalUsdtBalance * 0.99;
+    
+    return Math.min(finalAmount, maxAllowed);
   }
   
   // CORRIGIDO: Calcular valores de alocação baseados no saldo total

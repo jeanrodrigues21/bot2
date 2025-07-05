@@ -71,6 +71,9 @@ export default class Database {
         user_id INTEGER NOT NULL,
         symbol TEXT DEFAULT 'BTCUSDT',
         trade_amount_usdt REAL DEFAULT 100,
+        trade_amount_percent REAL DEFAULT 10.0,
+        min_trade_amount_usdt REAL DEFAULT 5.0,
+        max_trade_amount_usdt REAL DEFAULT 10000.0,
         daily_profit_target REAL DEFAULT 1.0,
         stop_loss_percent REAL DEFAULT 2.0,
         max_daily_trades INTEGER DEFAULT 10,
@@ -202,6 +205,9 @@ export default class Database {
         id INTEGER PRIMARY KEY,
         symbol TEXT DEFAULT 'BTCUSDT',
         trade_amount_usdt REAL DEFAULT 100,
+        trade_amount_percent REAL DEFAULT 10.0,
+        min_trade_amount_usdt REAL DEFAULT 5.0,
+        max_trade_amount_usdt REAL DEFAULT 10000.0,
         daily_profit_target REAL DEFAULT 1.0,
         stop_loss_percent REAL DEFAULT 2.0,
         max_daily_trades INTEGER DEFAULT 10,
@@ -321,6 +327,9 @@ export default class Database {
 
       const newColumns = [
         { name: 'trade_amount_usdt', type: 'REAL', default: '100' },
+        { name: 'trade_amount_percent', type: 'REAL', default: '10.0' },
+        { name: 'min_trade_amount_usdt', type: 'REAL', default: '5.0' },
+        { name: 'max_trade_amount_usdt', type: 'REAL', default: '10000.0' },
         { name: 'daily_profit_target', type: 'REAL', default: '1.0' },
         { name: 'stop_loss_percent', type: 'REAL', default: '2.0' },
         { name: 'max_daily_trades', type: 'INTEGER', default: '10' },
@@ -416,7 +425,8 @@ export default class Database {
       const existingConfig = await this.db.get('SELECT * FROM bot_config WHERE id = 1');
       if (!existingConfig) {
         await this.db.run(`
-          INSERT INTO bot_config (id, symbol, trade_amount_usdt, test_mode) VALUES (1, 'BTCUSDT', 100, 0)
+          INSERT INTO bot_config (id, symbol, trade_amount_usdt, trade_amount_percent, test_mode) 
+          VALUES (1, 'BTCUSDT', 100, 10.0, 0)
         `);
       }
 
@@ -799,6 +809,9 @@ export default class Database {
         SET 
           symbol = ?,
           trade_amount_usdt = ?,
+          trade_amount_percent = ?,
+          min_trade_amount_usdt = ?,
+          max_trade_amount_usdt = ?,
           daily_profit_target = ?,
           stop_loss_percent = ?,
           max_daily_trades = ?,
@@ -826,6 +839,9 @@ export default class Database {
       `, [
         config.symbol || 'BTCUSDT',
         config.tradeAmountUsdt || 100,
+        config.tradeAmountPercent || 10.0,
+        config.minTradeAmountUsdt || 5.0,
+        config.maxTradeAmountUsdt || 10000.0,
         config.dailyProfitTarget || 1.0,
         config.stopLossPercent || 2.0,
         config.maxDailyTrades || 10,
@@ -852,6 +868,7 @@ export default class Database {
       logger.info('Configurações do bot salvas no banco de dados');
       logger.debug('Configurações salvas:', {
         tradingMode: config.tradingMode,
+        tradeAmountPercent: config.tradeAmountPercent,
         dynamicCoins: dynamicCoinsJson,
         originalStrategyPercent: config.originalStrategyPercent,
         reinforcementStrategyPercent: config.reinforcementStrategyPercent
@@ -886,6 +903,9 @@ export default class Database {
       const result = {
         symbol: config.symbol,
         tradeAmountUsdt: config.trade_amount_usdt,
+        tradeAmountPercent: config.trade_amount_percent || 10.0,
+        minTradeAmountUsdt: config.min_trade_amount_usdt || 5.0,
+        maxTradeAmountUsdt: config.max_trade_amount_usdt || 10000.0,
         dailyProfitTarget: config.daily_profit_target,
         stopLossPercent: config.stop_loss_percent,
         maxDailyTrades: config.max_daily_trades,
@@ -919,6 +939,7 @@ export default class Database {
 
       logger.debug('Configuração carregada do banco:', {
         tradingMode: result.tradingMode,
+        tradeAmountPercent: result.tradeAmountPercent,
         dynamicCoins: result.dynamicCoins,
         originalStrategyPercent: result.originalStrategyPercent,
         reinforcementStrategyPercent: result.reinforcementStrategyPercent
@@ -936,6 +957,9 @@ export default class Database {
       const fieldMappings = {
         symbol: 'symbol',
         tradeAmountUsdt: 'trade_amount_usdt',
+        tradeAmountPercent: 'trade_amount_percent',
+        minTradeAmountUsdt: 'min_trade_amount_usdt',
+        maxTradeAmountUsdt: 'max_trade_amount_usdt',
         dailyProfitTarget: 'daily_profit_target',
         stopLossPercent: 'stop_loss_percent',
         maxDailyTrades: 'max_daily_trades',

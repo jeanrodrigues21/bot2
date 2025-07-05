@@ -102,33 +102,12 @@ export default class TradingBot {
     }
   }
 
-  // CORRIGIDO: Calcular dados de máxima e mínima para cada moeda
-  calculateDailyHighLow(currentPrice, priceChange24h) {
-    // Calcular preço de 24h atrás
-    const price24hAgo = currentPrice / (1 + (priceChange24h / 100));
-    
-    // Estimar máxima e mínima baseado na variação
-    const variation = Math.abs(priceChange24h);
-    const volatilityFactor = variation / 100;
-    
-    // Calcular range estimado (mais conservador)
-    const estimatedRange = currentPrice * volatilityFactor * 0.8;
-    
-    let dailyHigh, dailyLow;
-    
-    if (priceChange24h >= 0) {
-      // Preço subiu: máxima é próxima do atual, mínima é menor
-      dailyHigh = currentPrice;
-      dailyLow = Math.min(price24hAgo, currentPrice - estimatedRange);
-    } else {
-      // Preço caiu: mínima é próxima do atual, máxima é maior
-      dailyLow = currentPrice;
-      dailyHigh = Math.max(price24hAgo, currentPrice + estimatedRange);
-    }
-    
+  // CORRIGIDO: Calcular dados de máxima e mínima para cada moeda usando dados reais da API
+  calculateDailyHighLow(tickerData) {
+    // Usar dados reais da API da Binance
     return {
-      dailyHigh: Math.max(dailyHigh, dailyLow), // Garantir que high >= low
-      dailyLow: Math.min(dailyHigh, dailyLow)
+      dailyHigh: parseFloat(tickerData.highPrice || tickerData.h || 0),
+      dailyLow: parseFloat(tickerData.lowPrice || tickerData.l || 0)
     };
   }
 
@@ -162,11 +141,8 @@ export default class TradingBot {
           const ticker = tickers[coin];
           const currentPrice = prices[coin];
           
-          // Calcular máxima e mínima estimadas
-          const { dailyHigh, dailyLow } = this.calculateDailyHighLow(
-            currentPrice, 
-            ticker.priceChangePercent
-          );
+          // CORRIGIDO: Usar dados reais da API
+          const { dailyHigh, dailyLow } = this.calculateDailyHighLow(ticker);
           
           const coinData = {
             currentPrice: currentPrice,
@@ -548,6 +524,35 @@ export default class TradingBot {
     const feeRate = isMaker ? this.config.makerFee : this.config.takerFee;
     return amount * feeRate;
   }
+
+  // NOVO: Calcular valor de trade baseado na porcentagem do saldo
+  async calculateTradeAmount() {
+    try {
+      // Obter saldo real da API
+      const usdtBalance = await this.api.getUsdtBalance();
+      
+      if (usdtBalance <= 0) {
+        this.log('warn', 'Saldo USDT insuficiente para calcular valor de trade');
+        return this.config.minTradeAmountUsdt || 5;
+      }
+      
+      // Usar o método da configuração para calcular
+      const tradeAmount = this.config.calculateTradeAmount(usdtBalance);
+      
+      this.log('info', `💰 Cálculo de trade:`);
+      this.log('info', `  - Saldo total: $${usdtBalance.toFixed(2)}`);
+      this.log('info', `  - Porcentagem: ${this.config.tradeAmountPercent}%`);
+      this.log('info', `  - Valor calculado: $${tradeAmount.toFixed(2)}`);
+      this.log('info', `  - Limites: Min $${this.config.minTradeAmountUsdt} | Max $${this.config.maxTradeAmountUsdt}`);
+      
+      return tradeAmount;
+      
+    } catch (error) {
+      this.log('error', `Erro ao calcular valor de trade: ${error.message}`);
+      // Fallback para valor mínimo
+      return this.config.minTradeAmountUsdt || 5;
+    }
+  }
   
   shouldBuy() {
     // Verificar se já está executando um trade
@@ -622,11 +627,16 @@ export default class TradingBot {
       return false;
     }
     
-    const sellAmount = this.config.tradeAmountUsdt / buyPrice;
-    const fees = this.calculateFees(this.config.tradeAmountUsdt) + 
+    // CORRIGIDO: Usar valor de trade calculado dinamicamente
+    const tradeAmount = this.config.calculateTradeAmount ? 
+      this.config.calculateTradeAmount(1000) : // Usar 1000 como base para cálculo
+      this.config.tradeAmountUsdt;
+    
+    const sellAmount = tradeAmount / buyPrice;
+    const fees = this.calculateFees(tradeAmount) + 
                  this.calculateFees(this.currentPrice * sellAmount);
-    const netProfit = (this.currentPrice * sellAmount) - this.config.tradeAmountUsdt - fees;
-    const profitPercent = (netProfit / this.config.tradeAmountUsdt) * 100;
+    const netProfit = (this.currentPrice * sellAmount) - tradeAmount - fees;
+    const profitPercent = (netProfit / tradeAmount) * 100;
     
     if (profitPercent >= this.config.dailyProfitTarget) {
       this.log('info', `Meta de lucro atingida: ${profitPercent.toFixed(2)}% >= ${this.config.dailyProfitTarget}%`);
@@ -640,27 +650,6 @@ export default class TradingBot {
     }
     
     return false;
-  }
-  
-  // CORRIGIDO: Calcular valor do trade baseado na configuração de estratégia
-  calculateTradeAmount(usdtBalance) {
-    // Se a estratégia de reforço estiver desabilitada, usar o valor configurado diretamente
-    if (!this.config.enableReinforcement) {
-      this.log('info', `Estratégia de reforço desabilitada - usando valor fixo: $${this.config.tradeAmountUsdt}`);
-      return Math.min(this.config.tradeAmountUsdt, usdtBalance * 0.99);
-    }
-    
-    // Se a estratégia de reforço estiver habilitada, usar alocação
-    try {
-      const allocation = this.config.calculateAllocation(usdtBalance);
-      const tradeAmount = allocation.originalStrategy * 0.99; // 99% para margem de taxas
-      
-      this.log('info', `Estratégia de reforço habilitada - usando alocação: $${tradeAmount.toFixed(2)} (${this.config.originalStrategyPercent}% do saldo)`);
-      return tradeAmount;
-    } catch (error) {
-      this.log('error', `Erro ao calcular alocação, usando valor fixo: ${error.message}`);
-      return Math.min(this.config.tradeAmountUsdt, usdtBalance * 0.99);
-    }
   }
   
   async executeBuy(symbol = null) {
@@ -683,19 +672,11 @@ export default class TradingBot {
       // Determinar símbolo a ser usado
       const targetSymbol = symbol || this.activeCoin || this.config.symbol;
       
-      // Obter saldo real da API
-      const usdtBalance = await this.api.getUsdtBalance();
-      
-      if (usdtBalance < 5) { // Mínimo para produção
-        this.log('warn', `Saldo real insuficiente: ${usdtBalance.toFixed(2)} USDT`);
-        return;
-      }
-      
-      // CORRIGIDO: Calcular valor do trade baseado na configuração
-      const tradeAmount = this.calculateTradeAmount(usdtBalance);
+      // NOVO: Calcular valor de trade baseado na porcentagem do saldo
+      const tradeAmount = await this.calculateTradeAmount();
       
       if (tradeAmount < 5) {
-        this.log('warn', `Valor de trade muito baixo: ${tradeAmount.toFixed(2)} USDT`);
+        this.log('warn', `Valor de trade muito baixo: $${tradeAmount.toFixed(2)}`);
         return;
       }
       
@@ -703,7 +684,7 @@ export default class TradingBot {
       const currentPrice = await this.api.getCurrentPrice(targetSymbol);
       let quantity = tradeAmount / currentPrice;
       
-      this.log('info', `Executando compra de ${targetSymbol} com ${tradeAmount.toFixed(2)} USDT`);
+      this.log('info', `Executando compra de ${targetSymbol} com $${tradeAmount.toFixed(2)} (${this.config.tradeAmountPercent}% do saldo)`);
       
       // Executar ordem real
       const order = await this.api.placeOrder('BUY', quantity, null, 'MARKET', targetSymbol);
@@ -1016,8 +997,8 @@ export default class TradingBot {
               const priceChange24h = parseFloat(tickerData.P || 0);
               const volume = parseFloat(tickerData.v || 0);
               
-              // Calcular máxima e mínima
-              const { dailyHigh, dailyLow } = this.calculateDailyHighLow(price, priceChange24h);
+              // CORRIGIDO: Usar dados reais da API
+              const { dailyHigh, dailyLow } = this.calculateDailyHighLow(tickerData);
               
               // Atualizar dados da moeda
               this.monitoredCoins.set(symbol, {
@@ -1052,8 +1033,8 @@ export default class TradingBot {
             const priceChange24h = parseFloat(json.P || 0);
             const volume = parseFloat(json.v || 0);
             
-            // Atualizar dados da moeda única
-            const { dailyHigh, dailyLow } = this.calculateDailyHighLow(price, priceChange24h);
+            // CORRIGIDO: Usar dados reais da API
+            const { dailyHigh, dailyLow } = this.calculateDailyHighLow(json);
             
             this.monitoredCoins.set(this.config.symbol, {
               currentPrice: price,
@@ -1334,18 +1315,16 @@ export default class TradingBot {
       }
       
       this.log('info', `Ambiente: PRODUÇÃO`);
+      this.log('info', `Sistema de Trade: ${this.config.tradeAmountPercent}% do saldo (Min: $${this.config.minTradeAmountUsdt} | Max: $${this.config.maxTradeAmountUsdt})`);
       this.log('info', `Meta de lucro: ${this.config.dailyProfitTarget}%`);
       this.log('info', `Stop loss: ${this.config.stopLossPercent}%`);
       this.log('info', `Max trades/dia: ${this.config.maxDailyTrades}`);
       
-      // Log da configuração de estratégia
       if (this.config.enableReinforcement) {
-        this.log('info', `Estratégia de Reforço: HABILITADA`);
         this.log('info', `Estratégia Original: ${this.config.originalStrategyPercent}%`);
         this.log('info', `Estratégia de Reforço: ${this.config.reinforcementStrategyPercent}%`);
       } else {
         this.log('info', `Estratégia de Reforço: DESABILITADA`);
-        this.log('info', `Valor fixo por trade: $${this.config.tradeAmountUsdt}`);
       }
       
       // Validar configurações
@@ -1407,7 +1386,7 @@ export default class TradingBot {
         return;
       }
       
-      // Verificar saldos
+      // Verificar saldos e mostrar prévia de alocação
       try {
         const usdtBalance = await this.api.getUsdtBalance();
         
@@ -1417,12 +1396,17 @@ export default class TradingBot {
           this.log('warn', `Saldo USDT baixo para realizar trades: $ ${usdtBalance.toFixed(2)}`);
         }
         
-        // Mostrar alocação baseada na configuração
+        // NOVO: Mostrar prévia do sistema de porcentagem
+        const tradeAmount = this.config.calculateTradeAmount(usdtBalance);
+        this.log('info', `💰 Sistema de Trade por Porcentagem:`);
+        this.log('info', `  - Porcentagem configurada: ${this.config.tradeAmountPercent}%`);
+        this.log('info', `  - Valor por trade: $${tradeAmount.toFixed(2)}`);
+        this.log('info', `  - Limites: Min $${this.config.minTradeAmountUsdt} | Max $${this.config.maxTradeAmountUsdt}`);
+        
+        // Mostrar alocação de estratégias se habilitada
         if (this.config.enableReinforcement) {
           const allocation = this.config.calculateAllocation(usdtBalance);
           this.log('info', `Alocação - Original: $${allocation.originalStrategy.toFixed(2)} | Reforço: $${allocation.reinforcementStrategy.toFixed(2)}`);
-        } else {
-          this.log('info', `Valor fixo por trade: $${this.config.tradeAmountUsdt}`);
         }
         
         // Atualizar saldos no banco

@@ -63,6 +63,12 @@ class TradingDashboard {
         this.singleSymbolGroup = document.getElementById('singleSymbolGroup');
         this.dynamicCoinsGroup = document.getElementById('dynamicCoinsGroup');
         
+        // NOVO: Elementos para sistema de porcentagem
+        this.tradeAmountPercent = document.getElementById('tradeAmountPercent');
+        this.minTradeAmountUsdt = document.getElementById('minTradeAmountUsdt');
+        this.maxTradeAmountUsdt = document.getElementById('maxTradeAmountUsdt');
+        this.tradePreview = document.getElementById('tradePreview');
+        
         // NOVO: Elementos para estratégias
         this.originalStrategyPercent = document.getElementById('originalStrategyPercent');
         this.reinforcementStrategyPercent = document.getElementById('reinforcementStrategyPercent');
@@ -158,6 +164,17 @@ class TradingDashboard {
         // NOVO: Event listeners para trading dinâmico
         if (this.tradingModeSelect) {
             this.tradingModeSelect.addEventListener('change', () => this.handleTradingModeChange());
+        }
+
+        // NOVO: Event listeners para sistema de porcentagem
+        if (this.tradeAmountPercent) {
+            this.tradeAmountPercent.addEventListener('input', () => this.updateTradePreview());
+        }
+        if (this.minTradeAmountUsdt) {
+            this.minTradeAmountUsdt.addEventListener('input', () => this.updateTradePreview());
+        }
+        if (this.maxTradeAmountUsdt) {
+            this.maxTradeAmountUsdt.addEventListener('input', () => this.updateTradePreview());
         }
 
         // NOVO: Event listeners para estratégias
@@ -302,6 +319,28 @@ class TradingDashboard {
                 }
             }
         }
+    }
+
+    // NOVO: Atualizar prévia de valor de trade
+    updateTradePreview() {
+        const percent = parseFloat(this.tradeAmountPercent.value) || 10;
+        const minAmount = parseFloat(this.minTradeAmountUsdt.value) || 5;
+        const maxAmount = parseFloat(this.maxTradeAmountUsdt.value) || 10000;
+        
+        // Simular com diferentes saldos
+        const sampleBalances = [100, 500, 1000, 5000, 10000];
+        
+        let previewText = '';
+        sampleBalances.forEach(balance => {
+            const calculatedAmount = (balance * percent) / 100;
+            const finalAmount = Math.max(minAmount, Math.min(calculatedAmount, maxAmount));
+            const maxAllowed = balance * 0.99; // 99% do saldo
+            const actualAmount = Math.min(finalAmount, maxAllowed);
+            
+            previewText += `Saldo $${balance}: Trade de $${actualAmount.toFixed(2)}<br>`;
+        });
+        
+        this.tradePreview.innerHTML = previewText;
     }
 
     // NOVO: Atualizar prévia de alocação
@@ -769,7 +808,15 @@ class TradingDashboard {
         const config = {
             // Trading básico
             symbol: document.getElementById('symbol').value,
-            tradeAmountUsdt: parseFloat(document.getElementById('tradeAmount').value),
+            
+            // NOVO: Sistema de porcentagem
+            tradeAmountPercent: parseFloat(document.getElementById('tradeAmountPercent').value),
+            minTradeAmountUsdt: parseFloat(document.getElementById('minTradeAmountUsdt').value),
+            maxTradeAmountUsdt: parseFloat(document.getElementById('maxTradeAmountUsdt').value),
+            
+            // Manter compatibilidade com valor fixo
+            tradeAmountUsdt: parseFloat(document.getElementById('tradeAmountPercent').value) || 100,
+            
             dailyProfitTarget: parseFloat(document.getElementById('dailyProfit').value),
             stopLossPercent: parseFloat(document.getElementById('stopLoss').value),
             maxDailyTrades: parseInt(document.getElementById('maxTrades').value),
@@ -848,7 +895,12 @@ class TradingDashboard {
             
             // Trading básico
             document.getElementById('symbol').value = config.symbol || 'BTCUSDT';
-            document.getElementById('tradeAmount').value = config.tradeAmountUsdt || 100;
+            
+            // NOVO: Sistema de porcentagem
+            document.getElementById('tradeAmountPercent').value = config.tradeAmountPercent || 10.0;
+            document.getElementById('minTradeAmountUsdt').value = config.minTradeAmountUsdt || 5.0;
+            document.getElementById('maxTradeAmountUsdt').value = config.maxTradeAmountUsdt || 10000.0;
+            
             document.getElementById('dailyProfit').value = config.dailyProfitTarget || 1.0;
             document.getElementById('stopLoss').value = config.stopLossPercent || 2.0;
             document.getElementById('maxTrades').value = config.maxDailyTrades || 10;
@@ -905,6 +957,7 @@ class TradingDashboard {
             // Atualizar interface
             this.handleTradingModeChange();
             this.updateAllocationPreview();
+            this.updateTradePreview();
             
             console.log('✅ Configurações carregadas com sucesso');
         } else {

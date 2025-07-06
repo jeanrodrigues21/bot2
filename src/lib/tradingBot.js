@@ -622,29 +622,98 @@ export default class TradingBot {
     return false;
   }
   
-  shouldSell(buyPrice) {
-    if (!this.positions.length) return false;
+  // CORRIGIDO: Função shouldSell com validação robusta e cálculo correto do tradeAmount
+  shouldSell(buyPrice = null) {
+    try {
+      // Verificação básica de posições
+      if (!this.positions || this.positions.length === 0) {
+        return false;
+      }
 
-    const position = this.positions[0];
-    const tradeAmount = position.tradeAmount;
-    const sellAmount = position.quantity;
+      const position = this.positions[0];
+      
+      // CORREÇÃO PRINCIPAL: Validação robusta dos dados da posição
+      if (!position || 
+          typeof position.buyPrice !== 'number' || 
+          typeof position.quantity !== 'number' ||
+          isNaN(position.buyPrice) || 
+          isNaN(position.quantity) ||
+          position.buyPrice <= 0 || 
+          position.quantity <= 0) {
+        this.log('warn', 'Dados da posição inválidos para cálculo de venda');
+        this.log('debug', 'Dados da posição:', JSON.stringify(position, null, 2));
+        return false;
+      }
 
-    const fees = this.calculateFees(tradeAmount) + this.calculateFees(this.currentPrice * sellAmount);
-    const netProfit = (this.currentPrice * sellAmount) - tradeAmount - fees;
-    const profitPercent = (netProfit / tradeAmount) * 100;
+      // Verificar se temos preço atual válido
+      if (typeof this.currentPrice !== 'number' || isNaN(this.currentPrice) || this.currentPrice <= 0) {
+        this.log('warn', 'Preço atual inválido para cálculo de venda');
+        return false;
+      }
 
-    if (profitPercent >= this.config.dailyProfitTarget) {
-      this.log('info', `Meta de lucro atingida: ${profitPercent.toFixed(2)}% >= ${this.config.dailyProfitTarget}%`);
-      return true;
+      // CORREÇÃO PRINCIPAL: Calcular tradeAmount corretamente
+      let tradeAmount;
+      
+      // Se a posição já tem tradeAmount salvo, usar ele
+      if (position.tradeAmount && typeof position.tradeAmount === 'number' && position.tradeAmount > 0) {
+        tradeAmount = position.tradeAmount;
+        this.log('info', `TradeAmount da posição: $${tradeAmount.toFixed(2)}`);
+      } else {
+        // Calcular baseado no preço de compra e quantidade
+        tradeAmount = position.buyPrice * position.quantity;
+        this.log('info', `TradeAmount calculado automaticamente: $${tradeAmount.toFixed(2)} (${position.buyPrice} × ${position.quantity})`);
+      }
+      
+      // Verificar se o tradeAmount calculado é válido
+      if (typeof tradeAmount !== 'number' || isNaN(tradeAmount) || tradeAmount <= 0) {
+        this.log('warn', 'TradeAmount inválido para cálculo de venda');
+        return false;
+      }
+
+      // Usar dados da posição para cálculos
+      const positionBuyPrice = position.buyPrice;
+      const quantity = position.quantity;
+      
+      // Calcular valores
+      const buyValue = tradeAmount; // Valor já gasto na compra
+      const sellValue = this.currentPrice * quantity; // Valor que receberemos na venda
+      const buyFee = this.calculateFees(buyValue);
+      const sellFee = this.calculateFees(sellValue);
+      const totalFees = buyFee + sellFee;
+      const netProfit = sellValue - buyValue - totalFees;
+      const profitPercent = (netProfit / buyValue) * 100;
+
+      // Log detalhado para debug
+      this.log('info', '📊 Análise de venda:');
+      this.log('info', `  - Preço de compra: $${positionBuyPrice.toFixed(2)}`);
+      this.log('info', `  - Preço atual: $${this.currentPrice.toFixed(2)}`);
+      this.log('info', `  - Quantidade: ${quantity.toFixed(8)}`);
+      this.log('info', `  - Valor de compra: $${buyValue.toFixed(2)}`);
+      this.log('info', `  - Valor de venda: $${sellValue.toFixed(2)}`);
+      this.log('info', `  - Taxas totais: $${totalFees.toFixed(2)}`);
+      this.log('info', `  - Lucro líquido: $${netProfit.toFixed(2)}`);
+      this.log('info', `  - Lucro %: ${profitPercent.toFixed(2)}%`);
+      this.log('info', `  - Meta: ${this.config.dailyProfitTarget}%`);
+
+      // Verificar meta de lucro
+      if (profitPercent >= this.config.dailyProfitTarget) {
+        this.log('info', `🎯 META DE LUCRO ATINGIDA: ${profitPercent.toFixed(2)}% >= ${this.config.dailyProfitTarget}%`);
+        return true;
+      }
+
+      // Verificar stop loss
+      const lossPercent = ((positionBuyPrice - this.currentPrice) / positionBuyPrice) * 100;
+      if (lossPercent >= this.config.stopLossPercent) {
+        this.log('warn', `🛑 STOP LOSS ATIVADO: Perda de ${lossPercent.toFixed(2)}% >= ${this.config.stopLossPercent}%`);
+        return true;
+      }
+
+      return false;
+
+    } catch (error) {
+      this.log('error', `Erro na função shouldSell: ${error.message}`);
+      return false;
     }
-
-    const lossPercent = ((buyPrice - this.currentPrice) / buyPrice) * 100;
-    if (lossPercent >= this.config.stopLossPercent) {
-      this.log('warn', `Stop loss ativado! Perda: ${lossPercent.toFixed(2)}%`);
-      return true;
-    }
-
-    return false;
   }
 
   async executeBuy(symbol = null) {
@@ -713,7 +782,7 @@ export default class TradingBot {
           timestamp: new Date().toISOString(),
           orderId: order.orderId,
           symbol: targetSymbol,
-          tradeAmount: actualTradeAmount,
+          tradeAmount: actualTradeAmount, // IMPORTANTE: Salvar o valor real gasto
           strategyType: 'original'
         };
         
@@ -769,16 +838,38 @@ export default class TradingBot {
     try {
       const targetSymbol = position.symbol || this.config.symbol;
       
-      // Verificar saldo real do ativo
+      // CORREÇÃO PRINCIPAL: Verificar saldo real do ativo antes da venda
       let assetBalance = await this.api.getBaseAssetBalance(targetSymbol);
       
+      this.log('info', `Saldo real de ${targetSymbol.replace('USDT', '')}: ${assetBalance.toFixed(8)}`);
+      this.log('info', `Quantidade da posição: ${position.quantity.toFixed(8)}`);
+      
+      // Verificar se temos saldo suficiente
       if (assetBalance < position.quantity * 0.99) {
         this.log('warn', `Saldo ${targetSymbol.replace('USDT', '')} insuficiente para venda. Disponível: ${assetBalance.toFixed(8)}, Necessário: ${position.quantity.toFixed(8)}`);
-        // Usar o saldo disponível
-        assetBalance = assetBalance * 0.99; // 99% para margem de segurança
+        
+        // Se o saldo for muito baixo, usar o que temos disponível
+        if (assetBalance > 0) {
+          assetBalance = assetBalance * 0.99; // 99% para margem de segurança
+          this.log('info', `Usando saldo disponível: ${assetBalance.toFixed(8)}`);
+        } else {
+          this.log('error', 'Saldo insuficiente para executar venda');
+          return;
+        }
       } else {
         assetBalance = position.quantity;
       }
+      
+      // Verificar valor mínimo da ordem
+      const currentPrice = await this.api.getCurrentPrice(targetSymbol);
+      const orderValue = assetBalance * currentPrice;
+      
+      if (orderValue < 5) {
+        this.log('warn', `Valor da ordem muito baixo: $${orderValue.toFixed(2)} - cancelando venda`);
+        return;
+      }
+      
+      this.log('info', `Executando venda: ${assetBalance.toFixed(8)} ${targetSymbol.replace('USDT', '')} (valor estimado: $${orderValue.toFixed(2)})`);
       
       // Executar ordem real
       const order = await this.api.placeOrder('SELL', assetBalance, null, 'MARKET', targetSymbol);
@@ -805,7 +896,15 @@ export default class TradingBot {
       
       if (order?.orderId) {
         const sellValue = parseFloat(order.cummulativeQuoteQty || (this.currentPrice * assetBalance));
-        const buyValue = position.buyPrice * position.quantity;
+        
+        // CORREÇÃO: Usar o tradeAmount correto da posição
+        let buyValue;
+        if (position.tradeAmount && position.tradeAmount > 0) {
+          buyValue = position.tradeAmount;
+        } else {
+          buyValue = position.buyPrice * position.quantity;
+        }
+        
         const fees = this.calculateFees(buyValue) + this.calculateFees(sellValue);
         const profit = sellValue - buyValue - fees;
         
@@ -839,6 +938,7 @@ export default class TradingBot {
     }
   }
   
+  // CORRIGIDO: Função processPriceUpdate com lógica de venda corrigida
   async processPriceUpdate(price, symbol = null) {
     await this.resetDailyStats();
     
@@ -861,16 +961,22 @@ export default class TradingBot {
       this.log('info', `${currentSymbol} - Preço: $ ${price.toFixed(2)} | Min: $ ${this.dailyLow.toFixed(2)} | Max: $ ${this.dailyHigh.toFixed(2)} | Var: ${dailyVariation.toFixed(2)}% | Trades: ${this.dailyTrades}`);
     }
     
-    // Lógica de compra (modo dinâmico ou single)
-    const bestCoin = this.findBestCoinToBuy();
-    if (bestCoin) {
-      await this.executeBuy(bestCoin);
+    // CORRIGIDO: Lógica de venda ANTES da lógica de compra
+    if (this.positions.length > 0) {
+      for (const position of [...this.positions]) {
+        if (this.shouldSell()) {
+          this.log('info', '🚀 EXECUTANDO VENDA - Meta de lucro atingida!');
+          await this.executeSell(position);
+          break; // Sair do loop após executar uma venda
+        }
+      }
     }
     
-    // Lógica de venda
-    for (const position of [...this.positions]) {
-      if (this.shouldSell(position.buyPrice)) {
-        await this.executeSell(position);
+    // Lógica de compra (só executa se não há posições abertas)
+    if (this.positions.length === 0) {
+      const bestCoin = this.findBestCoinToBuy();
+      if (bestCoin) {
+        await this.executeBuy(bestCoin);
       }
     }
   }

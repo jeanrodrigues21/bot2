@@ -162,3 +162,40 @@
 {"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-07-06 09:43:38"}
 {"level":"error","message":"❌ Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-07-06 09:43:38"}
 {"level":"error","message":"❌ Sessão não encontrada no banco de dados","service":"trading-bot","timestamp":"2025-07-06 11:54:11"}
+{"level":"error","message":"❌ Sessão não encontrada no banco de dados","service":"trading-bot","timestamp":"2025-07-06 14:03:01"}
+{"level":"error","message":"❌ Sessão não encontrada no banco de dados","service":"trading-bot","timestamp":"2025-07-06 14:05:30"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-07-06 14:05:30"}
+{"level":"error","message":"❌ Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-07-06 14:05:30"}
+{"level":"error","message":"Erro ao processar mensagem WebSocket: Cannot read properties of undefined (reading 'toFixed')","service":"trading-bot","timestamp":"2025-07-06 14:16:52"}
+{"level":"error","message":"Erro ao processar mensagem WebSocket: Cannot read properties of undefined (reading 'toFixed')","service":"trading-bot","timestamp":"2025-07-06 14:17:10"}
+{"level":"error","message":"Erro ao processar mensagem WebSocket: Cannot read properties of undefined (reading 'toFixed')","service":"trading-bot","timestamp":"2025-07-06 14:18:00"}
+{"level":"error","message":"Erro ao processar mensagem WebSocket: Cannot read properties of undefined (reading 'toFixed')","service":"trading-bot","timestamp":"2025-07-06 14:18:13"}
+{"level":"error","message":"Erro ao processar mensagem WebSocket: Cannot read properties of undefined (reading 'toFixed')","service":"trading-bot","timestamp":"2025-07-06 14:19:04"}
+{"level":"error","message":"Erro ao processar mensagem WebSocket: Cannot read properties of undefined (reading 'toFixed')","service":"trading-bot","timestamp":"2025-07-06 14:23:05"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:01:33"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:01:34"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:01:34"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:01:59"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:01:59"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:01:59"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:02:12"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:02:12"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:02:12"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:02:17"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:02:17"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:02:17"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:04:19"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:04:19"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:04:19"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:05:16"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:05:16"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:05:16"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:05:43"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:05:43"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:05:43"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 15:08:24"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 15:08:24"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 15:08:24"}
+{"data":{"code":-2010,"msg":"Account has insufficient balance for requested action."},"level":"error","message":"Erro na resposta: 400 /api/v3/order","service":"trading-bot","status":400,"timestamp":"2025-07-06 17:18:56"}
+{"level":"error","message":"Erro na requisição POST /api/v3/order:","service":"trading-bot","timestamp":"2025-07-06 17:18:56"}
+{"level":"error","message":"Ordem de venda não foi executada corretamente: null","service":"trading-bot","timestamp":"2025-07-06 17:18:56"}

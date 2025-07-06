@@ -1,0 +1,164 @@
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:01:49"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:02:04"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:02:37"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:03:29"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:03:33"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:03:36"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:06:07"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:08:23"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:08:23"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:08:23"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:08:23"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:09:01"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:09:01"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:09:01"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:09:01"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:13:09"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:13:09"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:13:09"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:13:09"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:13:20"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:13:20"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:13:20"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:13:20"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:13:38"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:13:38"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:13:38"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:13:38"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:14:45"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:14:45"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:14:45"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:14:45"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:23:51"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:23:51"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-06-29 00:23:51"}
+{"level":"error","message":"Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-06-29 00:23:51"}
+{"level":"error","message":"Erro no login:","service":"trading-bot","timestamp":"2025-06-29 00:43:45"}
+{"level":"error","message":"Erro no login:","service":"trading-bot","timestamp":"2025-06-29 00:43:45"}
+{"level":"error","message":"Acesso negado para usuário não-admin: teste1","service":"trading-bot","timestamp":"2025-06-29 00:43:59"}
+{"level":"error","message":"Erro no login:","service":"trading-bot","timestamp":"2025-06-29 00:59:57"}
+{"level":"error","message":"Erro no login:","service":"trading-bot","timestamp":"2025-06-29 00:59:57"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:00:07"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:00:07"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:00:38"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:01:08"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:01:38"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:02:08"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:02:38"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 01:03:08"}
+{"level":"error","message":"Erro no login:","service":"trading-bot","timestamp":"2025-06-29 11:10:55"}
+{"level":"error","message":"Erro no login:","service":"trading-bot","timestamp":"2025-06-29 11:10:55"}
+{"level":"error","message":"❌ Token de acesso não fornecido","service":"trading-bot","timestamp":"2025-06-29 11:18:46"}
+{"level":"error","message":"Erro no login para usuário teste1 | IP: 38.137.161.118 | Erro: Credenciais inválidas. Verifique seu usuário e senha.","service":"trading-bot","timestamp":"2025-06-29 11:24:16"}
+{"level":"error","message":"❌ Sessão não encontrada no banco de dados","service":"trading-bot","timestamp":"2025-06-29 12:23:19"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:33:25"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:33:58"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:34:32"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 40s","service":"trading-bot","timestamp":"2025-06-29 12:35:16"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:35:49"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:36:23"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:36:57"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 40s","service":"trading-bot","timestamp":"2025-06-29 12:37:41"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:38:15"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 40s","service":"trading-bot","timestamp":"2025-06-29 12:38:58"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:39:32"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:40:06"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:40:40"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:41:14"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:41:48"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:42:22"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 40s","service":"trading-bot","timestamp":"2025-06-29 12:43:06"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:43:40"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 36s","service":"trading-bot","timestamp":"2025-06-29 12:44:33"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:44:38"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:44:53"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:44:55"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:44:59"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:00"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:01"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:03"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:04"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:23"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:24"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:28"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:38"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:40"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:45"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:52"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:54"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:56"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:45:57"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:03"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:09"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:13"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:14"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:20"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:22"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:24"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:26"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:27"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:28"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:29"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:34"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:39"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:43"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:44"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:47"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:48"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-06-29 12:46:55"}
+{"level":"error","message":"Erro ao parar bot: this.symbolsInfo.clear is not a function","service":"trading-bot","stack":"TypeError: this.symbolsInfo.clear is not a function\n    at DynamicTradingManager.destroy (file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/dynamicTradingManager.js:329:22)\n    at TradingBot.stop (file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/tradingBot.js:1028:34)\n    at async global.stopBot (file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/index.js:282:7)\n    at async file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/routes/api.js:41:20","timestamp":"2025-06-29 12:58:02"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 12:58:34"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 40s","service":"trading-bot","timestamp":"2025-06-29 13:03:06"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 13:03:39"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 13:04:13"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 13:04:47"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 39s","service":"trading-bot","timestamp":"2025-06-29 13:16:47"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 13:17:21"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-06-29 13:17:54"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-07-04 20:39:26"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-07-04 20:40:01"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 40s","service":"trading-bot","timestamp":"2025-07-04 20:40:46"}
+{"level":"error","message":"Erro ao parar bot: this.symbolsInfo.clear is not a function","service":"trading-bot","stack":"TypeError: this.symbolsInfo.clear is not a function\n    at DynamicTradingManager.destroy (file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/dynamicTradingManager.js:329:22)\n    at TradingBot.stop (file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/tradingBot.js:1263:34)\n    at async global.stopBot (file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/index.js:282:7)\n    at async file:///home/jean/ultima%20atualizacao%20bot/01/src/lib/routes/api.js:41:20","timestamp":"2025-07-04 20:40:49"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-07-04 20:41:20"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-07-04 20:42:49"}
+{"level":"error","message":"🚨 WATCHDOG: WebSocket travado! Sem dados há 30s","service":"trading-bot","timestamp":"2025-07-04 20:43:24"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:09:02"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:12:02"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:12:08"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:14:14"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:14:34"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:15:09"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:15:18"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:16:42"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:18:03"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:18:12"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:18:54"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:19:08"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:21:18"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:21:33"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:22:59"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:24:04"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:26:40"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:26:52"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:27:36"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:29:36"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:33:15"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:39:38"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:40:05"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:42:21"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:42:29"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:42:42"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:45:53"}
+{"level":"error","message":"Erro ao executar compra: this.config.calculateAllocation is not a function","service":"trading-bot","timestamp":"2025-07-04 21:47:08"}
+{"code":"SQLITE_READONLY","errno":8,"level":"error","message":"Erro ao salvar estado do bot: SQLITE_READONLY: attempt to write a readonly database","service":"trading-bot","stack":"Error: SQLITE_READONLY: attempt to write a readonly database","timestamp":"2025-07-04 21:47:16"}
+{"code":"SQLITE_READONLY","errno":8,"level":"error","message":"Erro ao atualizar saldo no banco: SQLITE_READONLY: attempt to write a readonly database","service":"trading-bot","stack":"Error: SQLITE_READONLY: attempt to write a readonly database","timestamp":"2025-07-04 21:47:17"}
+{"level":"error","message":"Acesso negado para usuário não-admin: teste1","service":"trading-bot","timestamp":"2025-07-05 14:35:31"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-07-05 14:35:31"}
+{"level":"error","message":"❌ Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-07-05 14:35:31"}
+{"level":"error","message":"Erro na resposta: undefined /api/v3/ticker/price","service":"trading-bot","timestamp":"2025-07-05 20:46:18"}
+{"level":"error","message":"Erro na requisição GET /api/v3/ticker/price:","service":"trading-bot","timestamp":"2025-07-05 20:46:18"}
+{"level":"error","message":"❌ Sessão não encontrada no banco de dados","service":"trading-bot","timestamp":"2025-07-06 09:25:12"}
+{"level":"error","message":"Acesso negado para usuário não-admin: teste1","service":"trading-bot","timestamp":"2025-07-06 09:43:38"}
+{"level":"error","message":"Token inválido:","service":"trading-bot","timestamp":"2025-07-06 09:43:38"}
+{"level":"error","message":"❌ Token JWT inválido ou expirado","service":"trading-bot","timestamp":"2025-07-06 09:43:38"}
+{"level":"error","message":"❌ Sessão não encontrada no banco de dados","service":"trading-bot","timestamp":"2025-07-06 11:54:11"}

@@ -298,7 +298,7 @@ export default class TradingBot {
         const now = new Date();
         const hoursDiff = (now - positionDate) / (1000 * 60 * 60);
         
-        if (hoursDiff > 24) {
+        if (hoursDiff > 244450000000) {
           this.log('warn', `Posição muito antiga encontrada (${hoursDiff.toFixed(1)}h): ${position.orderId}`);
           continue;
         }
@@ -623,35 +623,30 @@ export default class TradingBot {
   }
   
   shouldSell(buyPrice) {
-    if (!this.positions.length) {
-      return false;
-    }
-    
-    // CORRIGIDO: Usar valor de trade calculado dinamicamente
-    const tradeAmount = this.config.calculateTradeAmount ? 
-      this.config.calculateTradeAmount(1000) : // Usar 1000 como base para cálculo
-      this.config.tradeAmountUsdt;
-    
-    const sellAmount = tradeAmount / buyPrice;
-    const fees = this.calculateFees(tradeAmount) + 
-                 this.calculateFees(this.currentPrice * sellAmount);
+    if (!this.positions.length) return false;
+
+    const position = this.positions[0];
+    const tradeAmount = position.tradeAmount;
+    const sellAmount = position.quantity;
+
+    const fees = this.calculateFees(tradeAmount) + this.calculateFees(this.currentPrice * sellAmount);
     const netProfit = (this.currentPrice * sellAmount) - tradeAmount - fees;
     const profitPercent = (netProfit / tradeAmount) * 100;
-    
+
     if (profitPercent >= this.config.dailyProfitTarget) {
       this.log('info', `Meta de lucro atingida: ${profitPercent.toFixed(2)}% >= ${this.config.dailyProfitTarget}%`);
       return true;
     }
-    
+
     const lossPercent = ((buyPrice - this.currentPrice) / buyPrice) * 100;
     if (lossPercent >= this.config.stopLossPercent) {
       this.log('warn', `Stop loss ativado! Perda: ${lossPercent.toFixed(2)}%`);
       return true;
     }
-    
+
     return false;
   }
-  
+
   async executeBuy(symbol = null) {
     // Verificar se já está executando um trade
     if (this.isExecutingTrade) {

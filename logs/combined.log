@@ -31150,3 +31150,31 @@
 {"level":"info","message":"✅ Sessão válida encontrada para usuário ID: 3","service":"trading-bot","timestamp":"2025-07-06 13:35:11"}
 {"level":"info","message":"✅ Usuário autorizado: teste1","service":"trading-bot","timestamp":"2025-07-06 13:35:11"}
 {"level":"info","message":"Saldo de produção atualizado: USDT=0.61, BTC=0.00004995","service":"trading-bot","timestamp":"2025-07-06 13:35:21"}
+{"level":"info","message":"🌐 Requisição: GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"🔐 Verificando autenticação para: /balance","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"🔐 Verificando token para GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"📋 Auth header: Bearer [TOKEN]","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"🔍 Token decodificado para usuário: teste1 (ID: 3)","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"✅ Sessão válida encontrada para usuário ID: 3","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"✅ Usuário autorizado: teste1","service":"trading-bot","timestamp":"2025-07-06 13:36:11"}
+{"level":"info","message":"🌐 Requisição: GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"🔐 Verificando autenticação para: /balance","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"🔐 Verificando token para GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"📋 Auth header: Bearer [TOKEN]","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"🔍 Token decodificado para usuário: teste1 (ID: 3)","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"✅ Sessão válida encontrada para usuário ID: 3","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"✅ Usuário autorizado: teste1","service":"trading-bot","timestamp":"2025-07-06 13:37:11"}
+{"level":"info","message":"🌐 Requisição: GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"🔐 Verificando autenticação para: /balance","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"🔐 Verificando token para GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"📋 Auth header: Bearer [TOKEN]","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"🔍 Token decodificado para usuário: teste1 (ID: 3)","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"✅ Sessão válida encontrada para usuário ID: 3","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"✅ Usuário autorizado: teste1","service":"trading-bot","timestamp":"2025-07-06 13:38:11"}
+{"level":"info","message":"🌐 Requisição: GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}
+{"level":"info","message":"🔐 Verificando autenticação para: /balance","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}
+{"level":"info","message":"🔐 Verificando token para GET /balance","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}
+{"level":"info","message":"📋 Auth header: Bearer [TOKEN]","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}
+{"level":"info","message":"🔍 Token decodificado para usuário: teste1 (ID: 3)","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}
+{"level":"info","message":"✅ Sessão válida encontrada para usuário ID: 3","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}
+{"level":"info","message":"✅ Usuário autorizado: teste1","service":"trading-bot","timestamp":"2025-07-06 13:39:11"}

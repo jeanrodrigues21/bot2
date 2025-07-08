@@ -461,9 +461,69 @@ export default class Database {
       VALUES (?, ?, ?, ?, ?)
     `, [username, email, password, role, approved ? 1 : 0]);
     
+    // Criar configuração padrão para o novo usuário
+    await this.createDefaultUserConfig(result.lastID);
+    
+    // Criar estado padrão para o novo usuário
+    await this.createDefaultUserState(result.lastID);
+    
+    // Criar saldo padrão para o novo usuário
+    await this.createDefaultUserBalance(result.lastID);
+    
     return result.lastID;
   }
 
+  async createDefaultUserConfig(userId) {
+    try {
+      await this.db.run(`
+        INSERT INTO user_bot_configs (
+          user_id, symbol, trade_amount_usdt, trade_amount_percent, 
+          min_trade_amount_usdt, max_trade_amount_usdt, daily_profit_target,
+          stop_loss_percent, max_daily_trades, min_price_change,
+          base_url, buy_threshold_from_low, min_history_for_analysis,
+          recent_trend_window, buy_cooldown_seconds, price_poll_interval,
+          log_frequency, maker_fee, taker_fee, trading_mode, dynamic_coins,
+          original_strategy_percent, reinforcement_strategy_percent,
+          reinforcement_trigger_percent, enable_reinforcement
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        userId, 'BTCUSDT', 100, 10.0, 5.0, 10000.0, 1.0, 2.0, 10, 0.5,
+        'https://api.binance.com', 0.2, 20, 10, 300, 10, 60, 0.001, 0.001,
+        'single', '["BTCUSDT","ETHUSDT","BNBUSDT","ADAUSDT","SOLUSDT","XRPUSDT","DOTUSDT","DOGEUSDT","AVAXUSDT","MATICUSDT"]',
+        70, 30, 1.0, 1
+      ]);
+      
+      logger.info(`Configuração padrão criada para usuário ${userId}`);
+    } catch (error) {
+      logger.error(`Erro ao criar configuração padrão para usuário ${userId}:`, error);
+    }
+  }
+
+  async createDefaultUserState(userId) {
+    try {
+      await this.db.run(`
+        INSERT INTO user_bot_states (user_id, total_profit, daily_trades, is_running, last_reset_date)
+        VALUES (?, ?, ?, ?, ?)
+      `, [userId, 0, 0, 0, new Date().toDateString()]);
+      
+      logger.info(`Estado padrão criado para usuário ${userId}`);
+    } catch (error) {
+      logger.error(`Erro ao criar estado padrão para usuário ${userId}:`, error);
+    }
+  }
+
+  async createDefaultUserBalance(userId) {
+    try {
+      await this.db.run(`
+        INSERT INTO user_account_balances (user_id, usdt_balance, btc_balance)
+        VALUES (?, ?, ?)
+      `, [userId, 0.0, 0.0]);
+      
+      logger.info(`Saldo padrão criado para usuário ${userId}`);
+    } catch (error) {
+      logger.error(`Erro ao criar saldo padrão para usuário ${userId}:`, error);
+    }
+  }
   async getUserById(id) {
     return await this.db.get('SELECT * FROM users WHERE id = ?', [id]);
   }
@@ -563,6 +623,367 @@ export default class Database {
 
   // ===== NOVOS MÉTODOS PARA TRADING DINÂMICO =====
 
+  // ===== MÉTODOS ESPECÍFICOS POR USUÁRIO =====
+
+  async getUserBotConfig(userId) {
+    try {
+      const config = await this.db.get('SELECT * FROM user_bot_configs WHERE user_id = ?', [userId]);
+      
+      if (!config) {
+        logger.warn(`Nenhuma configuração encontrada para usuário ${userId}`);
+        return null;
+      }
+
+      // Parse dynamic_coins JSON
+      let dynamicCoins;
+      try {
+        dynamicCoins = config.dynamic_coins ? JSON.parse(config.dynamic_coins) : [
+          'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT',
+          'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT'
+        ];
+      } catch (e) {
+        logger.error('Erro ao fazer parse de dynamic_coins:', e);
+        dynamicCoins = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT'];
+      }
+
+      const result = {
+        symbol: config.symbol,
+        tradeAmountUsdt: config.trade_amount_usdt,
+        tradeAmountPercent: config.trade_amount_percent || 10.0,
+        minTradeAmountUsdt: config.min_trade_amount_usdt || 5.0,
+        maxTradeAmountUsdt: config.max_trade_amount_usdt || 10000.0,
+        dailyProfitTarget: config.daily_profit_target,
+        stopLossPercent: config.stop_loss_percent,
+        maxDailyTrades: config.max_daily_trades,
+        minPriceChange: config.min_price_change,
+        testMode: false,
+        apiKey: config.api_key,
+        apiSecret: config.api_secret,
+        baseUrl: config.base_url,
+        buyThresholdFromLow: config.buy_threshold_from_low,
+        minHistoryForAnalysis: config.min_history_for_analysis,
+        recentTrendWindow: config.recent_trend_window,
+        buyCooldownSeconds: config.buy_cooldown_seconds,
+        pricePollInterval: config.price_poll_interval,
+        logFrequency: config.log_frequency,
+        makerFee: config.maker_fee,
+        takerFee: config.taker_fee,
+        tradingMode: config.trading_mode || 'single',
+        dynamicCoins: dynamicCoins,
+        originalStrategyPercent: config.original_strategy_percent || 70,
+        reinforcementStrategyPercent: config.reinforcement_strategy_percent || 30,
+        reinforcementTriggerPercent: config.reinforcement_trigger_percent || 1.0,
+        enableReinforcement: Boolean(config.enable_reinforcement),
+        createdAt: config.created_at,
+        updatedAt: config.updated_at
+      };
+
+      return result;
+    } catch (error) {
+      logger.error(`Erro ao obter configurações do usuário ${userId}:`, error);
+      return null;
+    }
+  }
+
+  async saveUserBotConfig(userId, config) {
+    try {
+      // Converter arrays para JSON strings
+      const dynamicCoinsJson = Array.isArray(config.dynamicCoins) ? 
+        JSON.stringify(config.dynamicCoins) : config.dynamicCoins;
+
+      await this.db.run(`
+        UPDATE user_bot_configs 
+        SET 
+          symbol = ?,
+          trade_amount_usdt = ?,
+          trade_amount_percent = ?,
+          min_trade_amount_usdt = ?,
+          max_trade_amount_usdt = ?,
+          daily_profit_target = ?,
+          stop_loss_percent = ?,
+          max_daily_trades = ?,
+          min_price_change = ?,
+          api_key = ?,
+          api_secret = ?,
+          base_url = ?,
+          buy_threshold_from_low = ?,
+          min_history_for_analysis = ?,
+          recent_trend_window = ?,
+          buy_cooldown_seconds = ?,
+          price_poll_interval = ?,
+          log_frequency = ?,
+          maker_fee = ?,
+          taker_fee = ?,
+          trading_mode = ?,
+          dynamic_coins = ?,
+          original_strategy_percent = ?,
+          reinforcement_strategy_percent = ?,
+          reinforcement_trigger_percent = ?,
+          enable_reinforcement = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+      `, [
+        config.symbol || 'BTCUSDT',
+        config.tradeAmountUsdt || 100,
+        config.tradeAmountPercent || 10.0,
+        config.minTradeAmountUsdt || 5.0,
+        config.maxTradeAmountUsdt || 10000.0,
+        config.dailyProfitTarget || 1.0,
+        config.stopLossPercent || 2.0,
+        config.maxDailyTrades || 10,
+        config.minPriceChange || 0.5,
+        config.apiKey || null,
+        config.apiSecret || null,
+        config.baseUrl || 'https://api.binance.com',
+        config.buyThresholdFromLow || 0.2,
+        config.minHistoryForAnalysis || 20,
+        config.recentTrendWindow || 10,
+        config.buyCooldownSeconds || 300,
+        config.pricePollInterval || 10,
+        config.logFrequency || 60,
+        config.makerFee || 0.001,
+        config.takerFee || 0.001,
+        config.tradingMode || 'single',
+        dynamicCoinsJson,
+        config.originalStrategyPercent || 70,
+        config.reinforcementStrategyPercent || 30,
+        config.reinforcementTriggerPercent || 1.0,
+        config.enableReinforcement !== undefined ? (config.enableReinforcement ? 1 : 0) : 1,
+        userId
+      ]);
+      
+      logger.info(`Configurações do usuário ${userId} salvas no banco de dados`);
+    } catch (error) {
+      logger.error(`Erro ao salvar configurações do usuário ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserBotState(userId) {
+    try {
+      return await this.db.get('SELECT * FROM user_bot_states WHERE user_id = ?', [userId]);
+    } catch (error) {
+      logger.error(`Erro ao obter estado do bot do usuário ${userId}:`, error);
+      return null;
+    }
+  }
+
+  async saveUserBotState(userId, totalProfit, dailyTrades, isRunning = null) {
+    try {
+      if (isRunning !== null) {
+        await this.db.run(`
+          UPDATE user_bot_states 
+          SET total_profit = ?, daily_trades = ?, is_running = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = ?
+        `, [totalProfit, dailyTrades, isRunning ? 1 : 0, userId]);
+      } else {
+        await this.db.run(`
+          UPDATE user_bot_states 
+          SET total_profit = ?, daily_trades = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = ?
+        `, [totalProfit, dailyTrades, userId]);
+      }
+    } catch (error) {
+      logger.error(`Erro ao salvar estado do bot do usuário ${userId}:`, error);
+    }
+  }
+
+  async setUserBotRunningState(userId, isRunning) {
+    try {
+      await this.db.run(`
+        UPDATE user_bot_states 
+        SET is_running = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+      `, [isRunning ? 1 : 0, userId]);
+    } catch (error) {
+      logger.error(`Erro ao salvar estado de execução do bot do usuário ${userId}:`, error);
+    }
+  }
+
+  async getUserBotRunningState(userId) {
+    try {
+      const state = await this.db.get('SELECT is_running FROM user_bot_states WHERE user_id = ?', [userId]);
+      return state ? Boolean(state.is_running) : false;
+    } catch (error) {
+      logger.error(`Erro ao obter estado de execução do bot do usuário ${userId}:`, error);
+      return false;
+    }
+  }
+
+  async getUserBalance(userId) {
+    try {
+      const balance = await this.db.get(`
+        SELECT usdt_balance, btc_balance, last_updated 
+        FROM user_account_balances 
+        WHERE user_id = ?
+      `, [userId]);
+      
+      if (!balance) {
+        return {
+          usdtBalance: 0.0,
+          btcBalance: 0.0,
+          lastUpdated: new Date().toISOString()
+        };
+      }
+      
+      return {
+        usdtBalance: balance.usdt_balance,
+        btcBalance: balance.btc_balance,
+        lastUpdated: balance.last_updated
+      };
+    } catch (error) {
+      logger.error(`Erro ao obter saldo do usuário ${userId}:`, error);
+      return {
+        usdtBalance: 0.0,
+        btcBalance: 0.0,
+        lastUpdated: new Date().toISOString()
+      };
+    }
+  }
+
+  async updateUserBalance(userId, usdtBalance, btcBalance) {
+    try {
+      await this.db.run(`
+        UPDATE user_account_balances 
+        SET usdt_balance = ?, btc_balance = ?, last_updated = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+      `, [usdtBalance, btcBalance, userId]);
+      
+      logger.debug(`Saldo do usuário ${userId} atualizado - USDT: ${usdtBalance}, BTC: ${btcBalance}`);
+    } catch (error) {
+      logger.error(`Erro ao atualizar saldo do usuário ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserOpenPositions(userId) {
+    try {
+      const positions = await this.db.all(`
+        SELECT * FROM user_positions 
+        WHERE user_id = ? AND status = 'OPEN' 
+        ORDER BY created_at DESC
+      `, [userId]);
+
+      return positions.map(pos => ({
+        id: pos.id,
+        orderId: pos.order_id,
+        symbol: pos.symbol,
+        buyPrice: pos.price,
+        quantity: pos.quantity,
+        timestamp: pos.created_at,
+        strategyType: pos.strategy_type,
+        parentPositionId: pos.parent_position_id
+      }));
+    } catch (error) {
+      logger.error(`Erro ao obter posições abertas do usuário ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async saveUserPosition(userId, position) {
+    try {
+      await this.db.run(`
+        INSERT INTO user_positions (user_id, order_id, symbol, side, quantity, price, status, strategy_type, parent_position_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        userId,
+        position.orderId,
+        position.symbol || 'BTCUSDT',
+        'BUY',
+        position.quantity,
+        position.buyPrice,
+        'OPEN',
+        position.strategyType || 'original',
+        position.parentPositionId || null
+      ]);
+    } catch (error) {
+      logger.error(`Erro ao salvar posição do usuário ${userId}:`, error);
+    }
+  }
+
+  async closeUserPosition(userId, orderId, sellPrice, profit) {
+    try {
+      await this.db.run(`
+        UPDATE user_positions 
+        SET status = 'CLOSED', closed_at = CURRENT_TIMESTAMP, profit = ?
+        WHERE user_id = ? AND order_id = ?
+      `, [profit, userId, orderId]);
+
+      const position = await this.db.get('SELECT * FROM user_positions WHERE user_id = ? AND order_id = ?', [userId, orderId]);
+      if (position) {
+        await this.saveUserTrade(userId, {
+          orderId: orderId + '_SELL',
+          symbol: position.symbol,
+          side: 'SELL',
+          quantity: position.quantity,
+          price: sellPrice,
+          profit: profit,
+          strategyType: position.strategy_type
+        });
+      }
+    } catch (error) {
+      logger.error(`Erro ao fechar posição do usuário ${userId}:`, error);
+    }
+  }
+
+  async saveUserTrade(userId, trade) {
+    try {
+      await this.db.run(`
+        INSERT INTO user_trades (user_id, order_id, symbol, side, quantity, price, fee, profit, strategy_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        userId,
+        trade.orderId,
+        trade.symbol || 'BTCUSDT',
+        trade.side,
+        trade.quantity,
+        trade.price,
+        trade.fee || 0,
+        trade.profit || 0,
+        trade.strategyType || 'original'
+      ]);
+    } catch (error) {
+      logger.error(`Erro ao salvar trade do usuário ${userId}:`, error);
+    }
+  }
+
+  async getUserTradeHistory(userId, limit = 100) {
+    try {
+      return await this.db.all(`
+        SELECT * FROM user_trades 
+        WHERE user_id = ?
+        ORDER BY executed_at DESC 
+        LIMIT ?
+      `, [userId, limit]);
+    } catch (error) {
+      logger.error(`Erro ao obter histórico de trades do usuário ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getUserDailyStats(userId, days = 30) {
+    try {
+      // Implementar lógica para estatísticas diárias por usuário
+      // Por enquanto, retornar array vazio
+      return [];
+    } catch (error) {
+      logger.error(`Erro ao obter estatísticas diárias do usuário ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async resetUserDailyStats(userId) {
+    try {
+      const today = new Date().toDateString();
+      await this.db.run(`
+        UPDATE user_bot_states 
+        SET daily_trades = 0, last_reset_date = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+      `, [today, userId]);
+    } catch (error) {
+      logger.error(`Erro ao resetar estatísticas diárias do usuário ${userId}:`, error);
+    }
+  }
   // Salvar histórico de preços para múltiplas moedas
   async saveMultiPricePoint(symbol, priceData) {
     try {

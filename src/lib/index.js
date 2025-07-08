@@ -45,17 +45,23 @@ global.logger = Logger;
 global.db = null;
 global.balanceManager = null;
 global.authManager = null;
+global.userBots = new Map(); // Map<userId, TradingBot>
+global.userBalanceManagers = new Map(); // Map<userId, BalanceManager>
 
 // WebSocket broadcast function
 const broadcast = (data) => {
   const message = JSON.stringify(data);
   wss.clients.forEach((client) => {
     if (client.readyState === client.OPEN) {
+      // TODO: Implementar filtro por usuário se necessário
+      // Por enquanto, broadcast para todos os clientes
       client.send(message);
     }
   });
 };
 
+// Tornar broadcast disponível globalmente
+global.broadcast = broadcast;
 // WebSocket connection handler
 wss.on('connection', (ws) => {
   global.logger.info('Cliente WebSocket conectado');
@@ -163,13 +169,8 @@ const initializeAuthManager = async () => {
 // Initialize balance manager
 const initializeBalanceManager = async () => {
   try {
-    // Carregar configurações do banco primeiro
-    const dbConfig = await global.db.getBotConfig();
-    const config = new TradingConfig();
-    config.updateFromDatabase(dbConfig);
-    
-    const api = new BinanceAPI(config);
-    global.balanceManager = new BalanceManager(global.db, api);
+    // Balance manager global não é mais necessário
+    // Cada usuário terá seu próprio balance manager
     global.logger.info('BalanceManager inicializado com sucesso');
   } catch (error) {
     global.logger.error('Erro ao inicializar BalanceManager:', error);
@@ -184,40 +185,21 @@ const recoverBotState = async () => {
       return;
     }
 
-    // Verificar se o bot estava rodando antes do servidor parar
-    const wasRunning = await global.db.getBotRunningState();
-    
-    if (wasRunning) {
-      global.logger.info('Bot estava em execução antes da parada do servidor');
-      global.logger.info('Tentando reiniciar o bot automaticamente...');
-      
-      // Tentar reiniciar o bot automaticamente
-      const result = await global.startBot();
-      
-      if (result.success) {
-        global.logger.info('Bot reiniciado automaticamente com sucesso');
-      } else {
-        global.logger.error('Falha ao reiniciar bot automaticamente:', result.error);
-        // Marcar bot como parado no banco se falhou ao reiniciar
-        await global.db.setBotRunningState(false);
-      }
-    } else {
-      global.logger.info('Bot não estava em execução antes da parada do servidor');
-    }
+    // TODO: Implementar recuperação de estado para múltiplos usuários
+    // Por enquanto, não fazer recuperação automática
+    global.logger.info('Recuperação de estado multi-usuário não implementada ainda');
   } catch (error) {
     global.logger.error('Erro ao recuperar estado do bot:', error);
-    // Em caso de erro, assumir que bot não estava rodando
-    try {
-      await global.db.setBotRunningState(false);
-    } catch (dbError) {
-      global.logger.error('Erro ao marcar bot como parado:', dbError);
-    }
   }
 };
 
 // Global functions
 global.startBot = async () => {
   try {
+    // Esta função é mantida para compatibilidade, mas não deve ser usada
+    // Use startUserBot através das rotas da API
+    global.logger.warn('global.startBot() está deprecated. Use startUserBot() através da API.');
+    
     if (global.tradingBot) {
       await global.tradingBot.stop();
     }
@@ -278,6 +260,10 @@ global.startBot = async () => {
 
 global.stopBot = async () => {
   try {
+    // Esta função é mantida para compatibilidade, mas não deve ser usada
+    // Use stopUserBot() através das rotas da API
+    global.logger.warn('global.stopBot() está deprecated. Use stopUserBot() através da API.');
+    
     if (global.tradingBot) {
       await global.tradingBot.stop();
       global.tradingBot = null;
@@ -359,6 +345,10 @@ global.getBotHistory = () => {
 
 global.getBotConfig = async () => {
   try {
+    // Esta função é mantida para compatibilidade, mas não deve ser usada
+    // Use getUserBotConfig() através das rotas da API
+    global.logger.warn('global.getBotConfig() está deprecated. Use getUserBotConfig() através da API.');
+    
     if (!global.db) {
       return {
         tradeAmountUsdt: 100,
@@ -400,6 +390,10 @@ global.getBotConfig = async () => {
 
 global.saveConfig = async (newConfig) => {
   try {
+    // Esta função é mantida para compatibilidade, mas não deve ser usada
+    // Use saveUserConfig() através das rotas da API
+    global.logger.warn('global.saveConfig() está deprecated. Use saveUserConfig() através da API.');
+    
     if (!global.db) {
       throw new Error('Database não inicializado');
     }
@@ -446,6 +440,7 @@ const startServer = async () => {
       global.logger.info('WebSocket server iniciado');
       global.logger.info('Sistema de autenticação multi-usuário ativo');
       global.logger.info('Sistema de trading dinâmico ativo');
+      global.logger.info('Sistema multi-usuário independente ativo');
       
       // Log configuration status
       try {

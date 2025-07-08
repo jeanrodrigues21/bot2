@@ -1,9 +1,10 @@
 import logger from './logger.js';
 
 export default class BalanceManager {
-  constructor(database, binanceApi) {
+  constructor(database, binanceApi, userId = null) {
     this.db = database;
     this.api = binanceApi;
+    this.userId = userId; // ID do usuário específico
     this.updateInterval = null;
     this.isUpdating = false;
   }
@@ -44,18 +45,24 @@ export default class BalanceManager {
     this.isUpdating = true;
     
     try {
-      logger.debug('Atualizando saldo de produção via API...');
+      const userInfo = this.userId ? ` para usuário ${this.userId}` : '';
+      logger.debug(`Atualizando saldo de produção via API${userInfo}...`);
       
       const usdtBalance = await this.api.getAssetBalance('USDT');
       const btcBalance = await this.api.getBtcBalance();
       
-      await this.db.updateBalance(false, usdtBalance, btcBalance);
+      if (this.userId) {
+        await this.db.updateUserBalance(this.userId, usdtBalance, btcBalance);
+      } else {
+        await this.db.updateBalance(false, usdtBalance, btcBalance);
+      }
       
-      logger.info(`Saldo de produção atualizado: USDT=${usdtBalance.toFixed(2)}, BTC=${btcBalance.toFixed(8)}`);
+      logger.info(`Saldo de produção atualizado${userInfo}: USDT=${usdtBalance.toFixed(2)}, BTC=${btcBalance.toFixed(8)}`);
       
       return { usdtBalance, btcBalance };
     } catch (error) {
-      logger.error('Erro ao atualizar saldo de produção:', error);
+      const userInfo = this.userId ? ` do usuário ${this.userId}` : '';
+      logger.error(`Erro ao atualizar saldo de produção${userInfo}:`, error);
       throw error;
     } finally {
       this.isUpdating = false;
@@ -75,9 +82,14 @@ export default class BalanceManager {
   // Obter saldo atual do banco (sempre produção)
   async getCurrentBalance() {
     try {
-      return await this.db.getBalance(false); // Sempre produção
+      if (this.userId) {
+        return await this.db.getUserBalance(this.userId);
+      } else {
+        return await this.db.getBalance(false); // Sempre produção
+      }
     } catch (error) {
-      logger.error('Erro ao obter saldo atual:', error);
+      const userInfo = this.userId ? ` do usuário ${this.userId}` : '';
+      logger.error(`Erro ao obter saldo atual${userInfo}:`, error);
       throw error;
     }
   }

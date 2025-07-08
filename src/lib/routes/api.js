@@ -7,10 +7,11 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Rota para obter status do bot
-router.get('/status', (req, res) => {
+// Rota para obter status do bot do usuário
+router.get('/status', async (req, res) => {
   try {
-    const status = global.getBotStatus();
+    const userId = req.user.id;
+    const status = await getUserBotStatus(userId);
     res.json(status);
   } catch (error) {
     logger.error('Erro ao obter status:', error);
@@ -21,10 +22,11 @@ router.get('/status', (req, res) => {
   }
 });
 
-// Rota para iniciar o bot
+// Rota para iniciar o bot do usuário
 router.post('/start', async (req, res) => {
   try {
-    const result = await global.startBot();
+    const userId = req.user.id;
+    const result = await startUserBot(userId);
     res.json(result);
   } catch (error) {
     logger.error('Erro ao iniciar bot via API:', error);
@@ -35,10 +37,11 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// Rota para parar o bot
+// Rota para parar o bot do usuário
 router.post('/stop', async (req, res) => {
   try {
-    const result = await global.stopBot();
+    const userId = req.user.id;
+    const result = await stopUserBot(userId);
     res.json(result);
   } catch (error) {
     logger.error('Erro ao parar bot via API:', error);
@@ -49,12 +52,15 @@ router.post('/stop', async (req, res) => {
   }
 });
 
-// Rota para verificação forçada
+// Rota para verificação forçada do usuário
 router.post('/force-check', async (req, res) => {
   try {
-    if (global.tradingBot && global.tradingBot.isRunning) {
-      await global.tradingBot.checkPrice();
-      await global.tradingBot.evaluatePositions();
+    const userId = req.user.id;
+    const userBot = global.userBots?.get(userId);
+    
+    if (userBot && userBot.isRunning) {
+      await userBot.checkPrice();
+      await userBot.evaluatePositions();
       res.json({ success: true, message: 'Verificação forçada executada' });
     } else {
       res.json({ success: false, message: 'Bot não está rodando' });
@@ -68,9 +74,11 @@ router.post('/force-check', async (req, res) => {
   }
 });
 
-// Rota para fechar posições
+// Rota para fechar posições do usuário
 router.post('/close-positions', async (req, res) => {
   try {
+    const userId = req.user.id;
+    
     if (!global.db) {
       return res.status(500).json({
         success: false,
@@ -78,17 +86,19 @@ router.post('/close-positions', async (req, res) => {
       });
     }
     
-    const positions = await global.db.getOpenPositions();
+    const positions = await global.db.getUserOpenPositions(userId);
     
     if (positions.length === 0) {
       return res.json({ success: true, message: 'Nenhuma posição aberta para fechar' });
     }
 
+    const userBot = global.userBots?.get(userId);
+    
     // Simular fechamento de posições
     for (const position of positions) {
-      const currentPrice = global.tradingBot?.priceHistory?.[global.tradingBot.priceHistory.length - 1]?.price || position.buyPrice;
+      const currentPrice = userBot?.priceHistory?.[userBot.priceHistory.length - 1]?.price || position.buyPrice;
       const profit = (currentPrice - position.buyPrice) * position.quantity;
-      await global.db.closePosition(position.orderId, currentPrice, profit);
+      await global.db.closeUserPosition(userId, position.orderId, currentPrice, profit);
     }
 
     res.json({ success: true, message: `${positions.length} posições fechadas` });
@@ -101,9 +111,11 @@ router.post('/close-positions', async (req, res) => {
   }
 });
 
-// Rota para obter saldos do banco de dados (sempre produção)
+// Rota para obter saldos do usuário
 router.get('/balance', async (req, res) => {
   try {
+    const userId = req.user.id;
+    
     if (!global.db) {
       return res.status(500).json({
         success: false,
@@ -111,14 +123,13 @@ router.get('/balance', async (req, res) => {
       });
     }
 
-    // Sempre usar produção
-    const balance = await global.db.getBalance(false);
+    const balance = await global.db.getUserBalance(userId);
     
-    logger.debug(`Saldo obtido do banco - PRODUÇÃO, USDT: ${balance.usdtBalance}, BTC: ${balance.btcBalance}`);
+    logger.debug(`Saldo obtido do banco para usuário ${userId} - USDT: ${balance.usdtBalance}, BTC: ${balance.btcBalance}`);
     
     res.json({
       success: true,
-      testMode: false, // Sempre produção
+      testMode: false,
       usdtBalance: balance.usdtBalance,
       btcBalance: balance.btcBalance,
       lastUpdated: balance.lastUpdated
@@ -132,22 +143,25 @@ router.get('/balance', async (req, res) => {
   }
 });
 
-// Rota para forçar atualização de saldo (sempre produção)
+// Rota para forçar atualização de saldo do usuário
 router.post('/balance/update', async (req, res) => {
   try {
-    if (!global.balanceManager) {
+    const userId = req.user.id;
+    const userBalanceManager = global.userBalanceManagers?.get(userId);
+    
+    if (!userBalanceManager) {
       return res.status(500).json({
         success: false,
-        message: 'BalanceManager não inicializado'
+        message: 'BalanceManager do usuário não inicializado'
       });
     }
 
-    const balance = await global.balanceManager.forceUpdateBalance();
+    const balance = await userBalanceManager.forceUpdateBalance();
     
     res.json({
       success: true,
       message: 'Saldo atualizado com sucesso',
-      testMode: false, // Sempre produção
+      testMode: false,
       usdtBalance: balance.usdtBalance,
       btcBalance: balance.btcBalance,
       lastUpdated: balance.lastUpdated
@@ -161,10 +175,11 @@ router.post('/balance/update', async (req, res) => {
   }
 });
 
-// Rota para obter configurações
+// Rota para obter configurações do usuário
 router.get('/config', async (req, res) => {
   try {
-    const config = await global.getBotConfig();
+    const userId = req.user.id;
+    const config = await getUserBotConfig(userId);
     res.json(config);
   } catch (error) {
     logger.error('Erro ao obter configurações:', error);
@@ -175,14 +190,14 @@ router.get('/config', async (req, res) => {
   }
 });
 
-// Rota para salvar configurações
+// Rota para salvar configurações do usuário
 router.post('/config', async (req, res) => {
   try {
+    const userId = req.user.id;
     const newConfig = req.body;
-    // Forçar testMode = false (sempre produção)
     newConfig.testMode = false;
     
-    await global.saveConfig(newConfig);
+    await saveUserConfig(userId, newConfig);
     
     res.json({
       success: true,
@@ -197,9 +212,11 @@ router.post('/config', async (req, res) => {
   }
 });
 
-// Rota para obter histórico de trades
+// Rota para obter histórico de trades do usuário
 router.get('/trades', async (req, res) => {
   try {
+    const userId = req.user.id;
+    
     if (!global.db) {
       return res.status(500).json({
         success: false,
@@ -208,7 +225,7 @@ router.get('/trades', async (req, res) => {
     }
     
     const limit = parseInt(req.query.limit) || 50;
-    const trades = await global.db.getTradeHistory(limit);
+    const trades = await global.db.getUserTradeHistory(userId, limit);
     
     res.json({
       success: true,
@@ -223,9 +240,11 @@ router.get('/trades', async (req, res) => {
   }
 });
 
-// Rota para obter estatísticas diárias
+// Rota para obter estatísticas diárias do usuário
 router.get('/stats', async (req, res) => {
   try {
+    const userId = req.user.id;
+    
     if (!global.db) {
       return res.status(500).json({
         success: false,
@@ -234,7 +253,7 @@ router.get('/stats', async (req, res) => {
     }
     
     const days = parseInt(req.query.days) || 30;
-    const stats = await global.db.getDailyStats(days);
+    const stats = await global.db.getUserDailyStats(userId, days);
     
     res.json({
       success: true,
@@ -249,9 +268,11 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// Rota para obter histórico de preços
+// Rota para obter histórico de preços do usuário
 router.get('/prices', async (req, res) => {
   try {
+    const userId = req.user.id;
+    
     if (!global.db) {
       return res.status(500).json({
         success: false,
@@ -260,7 +281,10 @@ router.get('/prices', async (req, res) => {
     }
     
     const hours = parseInt(req.query.hours) || 24;
-    const prices = await global.db.getPriceHistory('BTCUSDT', hours);
+    const config = await global.db.getUserBotConfig(userId);
+    const symbol = config?.symbol || 'BTCUSDT';
+    
+    const prices = await global.db.getPriceHistory(symbol, hours);
     
     res.json({
       success: true,
@@ -275,15 +299,227 @@ router.get('/prices', async (req, res) => {
   }
 });
 
-// Rota principal para servir o dashboard
-router.get('/', (req, res) => {
+// Funções auxiliares para gerenciamento de usuários
+
+async function getUserBotStatus(userId) {
   try {
-    const dashboardPath = path.join(__dirname, '../../..', 'public', 'dashboard.html');
-    res.sendFile(dashboardPath);
+    const userBot = global.userBots?.get(userId);
+    const userState = await global.db.getUserBotState(userId);
+    
+    if (!userBot) {
+      return {
+        isRunning: false,
+        currentPrice: 0,
+        dailyLow: 0,
+        dailyHigh: 0,
+        dailyTrades: userState?.daily_trades || 0,
+        totalProfit: userState?.total_profit || 0,
+        positions: [],
+        activeCoin: '-',
+        testMode: false
+      };
+    }
+    
+    const status = userBot.getStatus();
+    return {
+      isRunning: userBot.isRunning,
+      currentPrice: status.currentPrice || 0,
+      dailyLow: status.dailyLow || 0,
+      dailyHigh: status.dailyHigh || 0,
+      dailyTrades: status.dailyTrades || 0,
+      totalProfit: status.totalProfit || 0,
+      positions: status.positions || [],
+      activeCoin: status.activeCoin || '-',
+      testMode: false
+    };
   } catch (error) {
-    logger.error('Erro ao servir dashboard:', error);
-    res.status(500).send('Erro interno do servidor');
+    logger.error(`Erro ao obter status do usuário ${userId}:`, error);
+    return {
+      isRunning: false,
+      currentPrice: 0,
+      dailyLow: 0,
+      dailyHigh: 0,
+      dailyTrades: 0,
+      totalProfit: 0,
+      positions: [],
+      activeCoin: '-',
+      testMode: false
+    };
   }
-});
+}
+
+async function startUserBot(userId) {
+  try {
+    // Parar bot existente se houver
+    if (global.userBots?.has(userId)) {
+      await stopUserBot(userId);
+    }
+    
+    // Carregar configurações do usuário
+    const userConfig = await global.db.getUserBotConfig(userId);
+    if (!userConfig) {
+      throw new Error('Configurações do usuário não encontradas');
+    }
+    
+    // Importar classes necessárias
+    const TradingBot = (await import('../tradingBot.js')).default;
+    const TradingConfig = (await import('../config.js')).default;
+    const BinanceAPI = (await import('../binanceApi.js')).default;
+    const BalanceManager = (await import('../balanceManager.js')).default;
+    
+    // Criar configuração específica do usuário
+    const config = new TradingConfig();
+    config.updateFromDatabase(userConfig);
+    config.validate();
+    
+    // Criar instâncias específicas do usuário
+    const userBot = new TradingBot(config, global.db, userId);
+    const userApi = new BinanceAPI(config);
+    const userBalanceManager = new BalanceManager(global.db, userApi, userId);
+    
+    // Inicializar mapas globais se não existirem
+    if (!global.userBots) global.userBots = new Map();
+    if (!global.userBalanceManagers) global.userBalanceManagers = new Map();
+    
+    // Armazenar instâncias do usuário
+    global.userBots.set(userId, userBot);
+    global.userBalanceManagers.set(userId, userBalanceManager);
+    
+    // Configurar callbacks para WebSocket
+    userBot.onStatusUpdate = (status) => {
+      // Broadcast apenas para o usuário específico (implementar filtro por usuário)
+      global.broadcast?.({
+        type: 'status',
+        data: status,
+        userId: userId
+      });
+    };
+    
+    userBot.onLogMessage = (logEntry) => {
+      global.broadcast?.({
+        type: 'log',
+        data: logEntry,
+        userId: userId
+      });
+    };
+    
+    userBot.onCoinsUpdate = (coinsData) => {
+      global.broadcast?.({
+        ...coinsData,
+        userId: userId
+      });
+    };
+    
+    // Iniciar bot do usuário
+    await userBot.start();
+    
+    // Salvar estado no banco
+    await global.db.setUserBotRunningState(userId, true);
+    
+    logger.info(`Bot iniciado para usuário ${userId}`);
+    return { success: true, message: 'Bot iniciado com sucesso' };
+  } catch (error) {
+    logger.error(`Erro ao iniciar bot do usuário ${userId}:`, error);
+    
+    // Marcar como parado em caso de erro
+    try {
+      await global.db.setUserBotRunningState(userId, false);
+    } catch (dbError) {
+      logger.error('Erro ao salvar estado do bot no banco:', dbError);
+    }
+    
+    return { success: false, error: error.message };
+  }
+}
+
+async function stopUserBot(userId) {
+  try {
+    const userBot = global.userBots?.get(userId);
+    
+    if (userBot) {
+      await userBot.stop();
+      global.userBots.delete(userId);
+    }
+    
+    // Parar balance manager do usuário
+    const userBalanceManager = global.userBalanceManagers?.get(userId);
+    if (userBalanceManager) {
+      userBalanceManager.destroy();
+      global.userBalanceManagers.delete(userId);
+    }
+    
+    // Salvar estado no banco
+    await global.db.setUserBotRunningState(userId, false);
+    
+    logger.info(`Bot parado para usuário ${userId}`);
+    return { success: true, message: 'Bot parado com sucesso' };
+  } catch (error) {
+    logger.error(`Erro ao parar bot do usuário ${userId}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function getUserBotConfig(userId) {
+  try {
+    const config = await global.db.getUserBotConfig(userId);
+    
+    if (!config) {
+      // Retornar configurações padrão para novo usuário
+      return {
+        symbol: 'BTCUSDT',
+        tradeAmountUsdt: 100,
+        tradeAmountPercent: 10.0,
+        minTradeAmountUsdt: 5.0,
+        maxTradeAmountUsdt: 10000.0,
+        dailyProfitTarget: 1.0,
+        stopLossPercent: 2.0,
+        maxDailyTrades: 10,
+        minPriceChange: 0.5,
+        tradingMode: 'single',
+        dynamicCoins: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT'],
+        originalStrategyPercent: 70,
+        reinforcementStrategyPercent: 30,
+        reinforcementTriggerPercent: 1.0,
+        enableReinforcement: true,
+        apiKey: '',
+        apiSecret: '',
+        baseUrl: 'https://api.binance.com',
+        buyThresholdFromLow: 0.2,
+        minHistoryForAnalysis: 20,
+        recentTrendWindow: 10,
+        buyCooldownSeconds: 300,
+        pricePollInterval: 10,
+        logFrequency: 60,
+        makerFee: 0.001,
+        takerFee: 0.001,
+        testMode: false
+      };
+    }
+    
+    return config;
+  } catch (error) {
+    logger.error(`Erro ao obter configurações do usuário ${userId}:`, error);
+    throw error;
+  }
+}
+
+async function saveUserConfig(userId, newConfig) {
+  try {
+    newConfig.testMode = false;
+    await global.db.saveUserBotConfig(userId, newConfig);
+    
+    // Atualizar bot em execução se existir
+    const userBot = global.userBots?.get(userId);
+    if (userBot) {
+      userBot.updateConfig(newConfig);
+    }
+    
+    logger.info(`Configurações salvas para usuário ${userId}`);
+    return { success: true, message: 'Configurações salvas com sucesso' };
+  } catch (error) {
+    logger.error(`Erro ao salvar configurações do usuário ${userId}:`, error);
+    throw error;
+  }
+}
 
 export default router;

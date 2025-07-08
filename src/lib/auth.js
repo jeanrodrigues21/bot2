@@ -161,6 +161,8 @@ export default class AuthManager {
         role: 'user'
       });
 
+      // Configuração padrão já é criada automaticamente no createUser
+      
       logger.info(`Novo usuário registrado: ${username} (${email}) - Aguardando aprovação`);
       
       return {

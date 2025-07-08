@@ -104,6 +104,8 @@ router.post('/users', async (req, res) => {
       approved
     });
     
+    // Configuração padrão já é criada automaticamente no createUser
+    
     logger.info(`Usuário criado pelo admin: ${username} (ID: ${userId})`);
     res.json({ success: true, message: 'Usuário criado com sucesso', userId });
   } catch (error) {

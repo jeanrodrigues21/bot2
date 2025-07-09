@@ -507,18 +507,40 @@ export default class Database {
     }
   }
 
+  async setUserBotRunningState(userId, isRunning) {
+    try {
+      await this.db.run(
+        'UPDATE user_bot_states SET is_running = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+        [isRunning ? 1 : 0, userId]
+      );
+      
+      logger.info(`Estado do bot do usuário ${userId} atualizado: ${isRunning ? 'rodando' : 'parado'}`);
+    } catch (error) {
+      logger.error(`Erro ao atualizar estado do bot do usuário ${userId}:`, error);
+      throw error;
+    }
+  }
+
   // NOVO: Obter usuários que tinham bots rodando
   async getRunningUserBots() {
     try {
       const query = `
-        SELECT ubs.user_id, u.username, u.email
+        SELECT 
+          ubs.user_id,
+          u.username,
+          u.email,
+          ubs.is_running,
+          ubs.updated_at
         FROM user_bot_states ubs
         JOIN users u ON ubs.user_id = u.id
         WHERE ubs.is_running = 1 AND u.approved = 1
+        ORDER BY ubs.updated_at DESC
       `;
       
-      const rows = await this.db.all(query);
-      return rows || [];
+      const users = await this.db.all(query);
+      
+      logger.info(`Encontrados ${users.length} usuários com bots que estavam rodando`);
+      return users || [];
     } catch (error) {
       logger.error('Erro ao obter usuários com bots rodando:', error);
       return [];
@@ -687,18 +709,6 @@ export default class Database {
       }
     } catch (error) {
       logger.error(`Erro ao salvar estado do bot do usuário ${userId}:`, error);
-    }
-  }
-
-  async setUserBotRunningState(userId, isRunning) {
-    try {
-      await this.db.run(`
-        UPDATE user_bot_states 
-        SET is_running = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-      `, [isRunning ? 1 : 0, userId]);
-    } catch (error) {
-      logger.error(`Erro ao salvar estado de execução do bot do usuário ${userId}:`, error);
     }
   }
 

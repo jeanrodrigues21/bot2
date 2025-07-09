@@ -241,6 +241,9 @@ const recoverBotState = async () => {
 
     global.logger.info('🔄 Iniciando recuperação de estado multi-usuário...');
     
+    // Aguardar um pouco para garantir que o banco esteja totalmente inicializado
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Obter todos os usuários que tinham bots rodando
     const runningUsers = await global.db.getRunningUserBots();
     
@@ -249,11 +252,17 @@ const recoverBotState = async () => {
       return;
     }
     
-    global.logger.info(`Encontrados ${runningUsers.length} bots que estavam rodando`);
+    global.logger.info(`🎯 Encontrados ${runningUsers.length} usuários com bots que estavam rodando:`);
+    runningUsers.forEach(user => {
+      global.logger.info(`  - ${user.username} (ID: ${user.user_id})`);
+    });
     
     // Inicializar mapas globais
     if (!global.userBots) global.userBots = new Map();
     if (!global.userBalanceManagers) global.userBalanceManagers = new Map();
+    
+    let successCount = 0;
+    let errorCount = 0;
     
     // Recuperar cada bot de usuário
     for (const user of runningUsers) {
@@ -264,6 +273,16 @@ const recoverBotState = async () => {
         const userConfig = await global.db.getUserBotConfig(user.user_id);
         if (!userConfig) {
           global.logger.warn(`Configurações não encontradas para usuário ${user.user_id}, pulando...`);
+          await global.db.setUserBotRunningState(user.user_id, false);
+          errorCount++;
+          continue;
+        }
+        
+        // Verificar se tem credenciais da API
+        if (!userConfig.apiKey || !userConfig.apiSecret) {
+          global.logger.warn(`❌ Credenciais da API não encontradas para usuário ${user.user_id}, marcando como parado`);
+          await global.db.setUserBotRunningState(user.user_id, false);
+          errorCount++;
           continue;
         }
         
@@ -278,10 +297,22 @@ const recoverBotState = async () => {
         config.updateFromDatabase(userConfig);
         
         // Validar configurações
-        const validation = config.validateCredentials();
-        if (!validation.valid) {
-          global.logger.warn(`Credenciais inválidas para usuário ${user.user_id}: ${validation.issues.join(', ')}`);
+        try {
+          config.validate();
+        } catch (validationError) {
+          global.logger.warn(`❌ Configurações inválidas para usuário ${user.user_id}: ${validationError.message}`);
           await global.db.setUserBotRunningState(user.user_id, false);
+          errorCount++;
+          continue;
+        }
+        
+        // Testar conexão com a API antes de iniciar
+        const testApi = new BinanceAPI(config);
+        const connectionTest = await testApi.testConnection();
+        if (!connectionTest) {
+          global.logger.warn(`❌ Falha na conexão com API Binance para usuário ${user.user_id}, marcando como parado`);
+          await global.db.setUserBotRunningState(user.user_id, false);
+          errorCount++;
           continue;
         }
         
@@ -316,16 +347,29 @@ const recoverBotState = async () => {
         // Iniciar bot do usuário
         await userBot.start();
         
-        global.logger.info(`✅ Bot recuperado e iniciado para usuário: ${user.username}`);
+        successCount++;
+        global.logger.info(`✅ Bot recuperado e iniciado com sucesso para usuário: ${user.username} (${successCount}/${runningUsers.length})`);
         
       } catch (error) {
-        global.logger.error(`❌ Erro ao recuperar bot do usuário ${user.user_id}:`, error);
+        errorCount++;
+        global.logger.error(`❌ Erro ao recuperar bot do usuário ${user.user_id} (${user.username}):`, error.message);
         // Marcar como parado em caso de erro
-        await global.db.setUserBotRunningState(user.user_id, false);
+        try {
+          await global.db.setUserBotRunningState(user.user_id, false);
+        } catch (dbError) {
+          global.logger.error(`Erro ao marcar bot como parado para usuário ${user.user_id}:`, dbError);
+        }
       }
     }
     
-    global.logger.info(`🎯 Recuperação concluída. ${global.userBots.size} bots recuperados com sucesso`);
+    global.logger.info(`🎯 Recuperação de estado concluída:`);
+    global.logger.info(`  ✅ Sucessos: ${successCount}`);
+    global.logger.info(`  ❌ Erros: ${errorCount}`);
+    global.logger.info(`  📊 Total de bots ativos: ${global.userBots.size}`);
+    
+    if (successCount > 0) {
+      global.logger.info(`🚀 ${successCount} bot(s) recuperado(s) e rodando automaticamente!`);
+    }
     
   } catch (error) {
     global.logger.error('❌ Erro geral na recuperação de estado:', error);

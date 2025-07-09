@@ -350,8 +350,11 @@ async function getUserBotStatus(userId) {
 
 async function startUserBot(userId) {
   try {
+    logger.info(`🚀 Iniciando bot para usuário ${userId}...`);
+    
     // Parar bot existente se houver
     if (global.userBots?.has(userId)) {
+      logger.info(`Parando bot existente do usuário ${userId}...`);
       await stopUserBot(userId);
     }
     
@@ -359,6 +362,11 @@ async function startUserBot(userId) {
     const userConfig = await global.db.getUserBotConfig(userId);
     if (!userConfig) {
       throw new Error('Configurações do usuário não encontradas');
+    }
+    
+    // Verificar credenciais básicas
+    if (!userConfig.apiKey || !userConfig.apiSecret) {
+      throw new Error('Credenciais da API Binance não configuradas');
     }
     
     // Importar classes necessárias
@@ -371,6 +379,14 @@ async function startUserBot(userId) {
     const config = new TradingConfig();
     config.updateFromDatabase(userConfig);
     config.validate();
+    
+    // Testar conexão com a API antes de iniciar
+    logger.info(`Testando conexão com API Binance para usuário ${userId}...`);
+    const testApi = new BinanceAPI(config);
+    const connectionTest = await testApi.testConnection();
+    if (!connectionTest) {
+      throw new Error('Falha na conexão com a API Binance. Verifique suas credenciais.');
+    }
     
     // Criar instâncias específicas do usuário
     const userBot = new TradingBot(config, global.db, userId);
@@ -408,19 +424,22 @@ async function startUserBot(userId) {
     };
     
     // Iniciar bot do usuário
+    logger.info(`Iniciando instância do bot para usuário ${userId}...`);
     await userBot.start();
     
     // Salvar estado no banco
+    logger.info(`Salvando estado 'rodando' no banco para usuário ${userId}...`);
     await global.db.setUserBotRunningState(userId, true);
     
-    logger.info(`Bot iniciado para usuário ${userId}`);
+    logger.info(`✅ Bot iniciado com sucesso para usuário ${userId}`);
     return { success: true, message: 'Bot iniciado com sucesso' };
   } catch (error) {
-    logger.error(`Erro ao iniciar bot do usuário ${userId}:`, error);
+    logger.error(`❌ Erro ao iniciar bot do usuário ${userId}:`, error.message);
     
     // Marcar como parado em caso de erro
     try {
       await global.db.setUserBotRunningState(userId, false);
+      logger.info(`Estado marcado como 'parado' no banco para usuário ${userId}`);
     } catch (dbError) {
       logger.error('Erro ao salvar estado do bot no banco:', dbError);
     }
@@ -431,9 +450,12 @@ async function startUserBot(userId) {
 
 async function stopUserBot(userId) {
   try {
+    logger.info(`🛑 Parando bot para usuário ${userId}...`);
+    
     const userBot = global.userBots?.get(userId);
     
     if (userBot) {
+      logger.info(`Parando instância do bot para usuário ${userId}...`);
       await userBot.stop();
       global.userBots.delete(userId);
     }
@@ -441,17 +463,19 @@ async function stopUserBot(userId) {
     // Parar balance manager do usuário
     const userBalanceManager = global.userBalanceManagers?.get(userId);
     if (userBalanceManager) {
+      logger.info(`Parando balance manager para usuário ${userId}...`);
       userBalanceManager.destroy();
       global.userBalanceManagers.delete(userId);
     }
     
     // Salvar estado no banco
+    logger.info(`Salvando estado 'parado' no banco para usuário ${userId}...`);
     await global.db.setUserBotRunningState(userId, false);
     
-    logger.info(`Bot parado para usuário ${userId}`);
+    logger.info(`✅ Bot parado com sucesso para usuário ${userId}`);
     return { success: true, message: 'Bot parado com sucesso' };
   } catch (error) {
-    logger.error(`Erro ao parar bot do usuário ${userId}:`, error);
+    logger.error(`❌ Erro ao parar bot do usuário ${userId}:`, error.message);
     return { success: false, error: error.message };
   }
 }

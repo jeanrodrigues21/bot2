@@ -5,9 +5,9 @@ export default class DynamicTradingManager {
     this.config = config;
     this.api = api;
     this.db = database;
-    this.userId = userId; // NOVO: ID do usuário específico
+    this.userId = userId; // NOVO: ID do usuário para operações específicas
     
-    // Estado para múltiplas moedas específico do usuário
+    // Estado para múltiplas moedas
     this.coinStates = new Map(); // symbol -> { priceHistory, dailyLow, dailyHigh, lastBuyTime }
     this.activeCoin = null; // Moeda atualmente sendo operada
     
@@ -17,28 +17,18 @@ export default class DynamicTradingManager {
     // Última atualização de dados
     this.lastDataUpdate = 0;
     this.dataUpdateInterval = 30000; // 30 segundos
-    
-    // NOVO: Prefixo para logs do usuário
-    this.logPrefix = userId ? `[User ${userId}]` : '[System]';
   }
 
-  // CORRIGIDO: Log específico do usuário
-  log(message, level = 'info') {
-    const fullMessage = `${this.logPrefix} DynamicManager: ${message}`;
-    
-    if (level === 'error') {
-      logger.error(fullMessage);
-    } else if (level === 'warn') {
-      logger.warn(fullMessage);
-    } else {
-      logger.info(fullMessage);
-    }
+  // NOVO: Definir usuário para operações específicas
+  setUserId(userId) {
+    this.userId = userId;
+    logger.info(`DynamicTradingManager configurado para usuário ${userId}`);
   }
 
   // Inicializar estados para todas as moedas dinâmicas
   async initializeCoinStates() {
     try {
-      this.log('Inicializando estados para trading dinâmico...');
+      logger.info(`Inicializando estados para trading dinâmico (usuário: ${this.userId || 'global'})...`);
       
       const coins = this.config.tradingMode === 'dynamic' ? 
         this.config.dynamicCoins : [this.config.symbol];
@@ -59,17 +49,17 @@ export default class DynamicTradingManager {
             priceChange24h: 0
           });
         } else {
-          this.log(`Símbolo ${coin} não está disponível para trading`, 'warn');
+          logger.warn(`Símbolo ${coin} não está disponível para trading`);
         }
       }
       
-      this.log(`Estados inicializados para ${this.coinStates.size} moedas`);
+      logger.info(`Estados inicializados para ${this.coinStates.size} moedas`);
       
       // Carregar dados iniciais
       await this.updateAllCoinData();
       
     } catch (error) {
-      this.log(`Erro ao inicializar estados das moedas: ${error.message}`, 'error');
+      logger.error('Erro ao inicializar estados das moedas:', error);
       throw error;
     }
   }
@@ -119,9 +109,9 @@ export default class DynamicTradingManager {
           state.dailyLow = Math.min(state.dailyLow, price);
           state.dailyHigh = Math.max(state.dailyHigh, price);
           
-          // CORRIGIDO: Salvar no banco específico do usuário
-          if (this.db && this.userId) {
-            await this.db.saveUserMultiPricePoint(this.userId, coin, {
+          // Salvar no banco de dados (global para todos os usuários)
+          if (this.db) {
+            await this.db.saveMultiPricePoint(coin, {
               price: price,
               dailyLow: ticker.lowPrice,
               dailyHigh: ticker.highPrice,
@@ -135,7 +125,7 @@ export default class DynamicTradingManager {
       this.lastDataUpdate = now;
       
     } catch (error) {
-      this.log(`Erro ao atualizar dados das moedas: ${error.message}`, 'error');
+      logger.error('Erro ao atualizar dados das moedas:', error);
     }
   }
 
@@ -153,7 +143,7 @@ export default class DynamicTradingManager {
     // Modo dinâmico: encontrar a primeira moeda que atende aos critérios
     for (const [coin, state] of this.coinStates.entries()) {
       if (this.shouldBuyCoin(coin, state)) {
-        this.log(`🎯 Moeda selecionada para compra: ${coin}`);
+        logger.info(`🎯 Moeda selecionada para compra (usuário ${this.userId}): ${coin}`);
         return coin;
       }
     }
@@ -203,11 +193,11 @@ export default class DynamicTradingManager {
               }
             }
             
-            this.log(`✅ ${symbol} atende aos critérios de compra:`);
-            this.log(`  - Preço da mínima: ${priceFromLow.toFixed(2)}% <= ${this.config.buyThresholdFromLow}%`);
-            this.log(`  - Tendência de alta: ${firstHalfAvg.toFixed(2)} -> ${secondHalfAvg.toFixed(2)}`);
-            this.log(`  - Variação do dia: ${dailyVariation.toFixed(2)}%`);
-            this.log(`  - Volume 24h: ${state.volume24h?.toFixed(2) || 'N/A'}`);
+            logger.info(`✅ ${symbol} atende aos critérios de compra (usuário ${this.userId}):`);
+            logger.info(`  - Preço da mínima: ${priceFromLow.toFixed(2)}% <= ${this.config.buyThresholdFromLow}%`);
+            logger.info(`  - Tendência de alta: ${firstHalfAvg.toFixed(2)} -> ${secondHalfAvg.toFixed(2)}`);
+            logger.info(`  - Variação do dia: ${dailyVariation.toFixed(2)}%`);
+            logger.info(`  - Volume 24h: ${state.volume24h?.toFixed(2) || 'N/A'}`);
             
             return true;
           }
@@ -217,7 +207,7 @@ export default class DynamicTradingManager {
       return false;
       
     } catch (error) {
-      this.log(`Erro ao verificar critérios de compra para ${symbol}: ${error.message}`, 'error');
+      logger.error(`Erro ao verificar critérios de compra para ${symbol} (usuário ${this.userId}):`, error);
       return false;
     }
   }
@@ -237,21 +227,21 @@ export default class DynamicTradingManager {
       
       // Verificar meta de lucro
       if (profitPercent >= this.config.dailyProfitTarget) {
-        this.log(`🎯 Meta de lucro atingida para ${symbol}: ${profitPercent.toFixed(2)}% >= ${this.config.dailyProfitTarget}%`);
+        logger.info(`🎯 Meta de lucro atingida para ${symbol} (usuário ${this.userId}): ${profitPercent.toFixed(2)}% >= ${this.config.dailyProfitTarget}%`);
         return { shouldSell: true, reason: 'profit_target', profitPercent };
       }
       
       // Verificar stop loss
       const lossPercent = ((buyPrice - currentPrice) / buyPrice) * 100;
       if (lossPercent >= this.config.stopLossPercent) {
-        this.log(`🛑 Stop loss ativado para ${symbol}! Perda: ${lossPercent.toFixed(2)}%`, 'warn');
+        logger.warn(`🛑 Stop loss ativado para ${symbol} (usuário ${this.userId})! Perda: ${lossPercent.toFixed(2)}%`);
         return { shouldSell: true, reason: 'stop_loss', lossPercent };
       }
       
       return { shouldSell: false };
       
     } catch (error) {
-      this.log(`Erro ao verificar critérios de venda: ${error.message}`, 'error');
+      logger.error(`Erro ao verificar critérios de venda (usuário ${this.userId}):`, error);
       return { shouldSell: false };
     }
   }
@@ -267,10 +257,10 @@ export default class DynamicTradingManager {
     
     // Verificar se atingiu o trigger de reforço
     if (lossPercent >= this.config.reinforcementTriggerPercent) {
-      // CORRIGIDO: Verificar se já existe uma posição de reforço para esta posição específica do usuário
+      // Verificar se já existe uma posição de reforço para esta posição
       // (implementar lógica para evitar múltiplos reforços)
       
-      this.log(`📈 Trigger de reforço ativado para ${position.symbol}: queda de ${lossPercent.toFixed(2)}%`);
+      logger.info(`📈 Trigger de reforço ativado para ${position.symbol} (usuário ${this.userId}): queda de ${lossPercent.toFixed(2)}%`);
       return true;
     }
     
@@ -331,19 +321,19 @@ export default class DynamicTradingManager {
       state.dailyHigh = 0;
     }
     
-    this.log('Estatísticas diárias resetadas para todas as moedas');
+    logger.info(`Estatísticas diárias resetadas para todas as moedas (usuário ${this.userId})`);
   }
 
   // Atualizar configuração
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    this.log('Configuração do DynamicTradingManager atualizada');
+    logger.info(`Configuração do DynamicTradingManager atualizada (usuário ${this.userId})`);
   }
 
   // Cleanup
   destroy() {
     this.coinStates.clear();
     this.symbolsInfo.clear();
-    this.log('DynamicTradingManager destruído');
+    logger.info(`DynamicTradingManager destruído (usuário ${this.userId})`);
   }
 }

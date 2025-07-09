@@ -53,30 +53,83 @@ const broadcast = (data) => {
   const message = JSON.stringify(data);
   wss.clients.forEach((client) => {
     if (client.readyState === client.OPEN) {
-      // TODO: Implementar filtro por usuário se necessário
-      // Por enquanto, broadcast para todos os clientes
-      client.send(message);
+      // CORRIGIDO: Verificar se o cliente pertence ao usuário específico
+      if (data.userId && client.userId && client.userId !== data.userId) {
+        return; // Não enviar para outros usuários
+      }
+      
+      // Se não há userId específico, é uma mensagem global (sistema)
+      if (!data.userId) {
+        client.send(message);
+      } else if (client.userId === data.userId) {
+        client.send(message);
+      }
     }
   });
 };
 
 // Tornar broadcast disponível globalmente
 global.broadcast = broadcast;
+
+// NOVO: Função de broadcast específica por usuário
+global.broadcastToUser = (userId, data) => {
+  const message = JSON.stringify({ ...data, userId });
+  wss.clients.forEach((client) => {
+    if (client.readyState === client.OPEN && client.userId === userId) {
+      client.send(message);
+    }
+  });
+};
+
 // WebSocket connection handler
 wss.on('connection', (ws) => {
   global.logger.info('Cliente WebSocket conectado');
   
-  // Send initial status
-  if (global.tradingBot) {
-    const status = global.getBotStatus();
-    ws.send(JSON.stringify({
-      type: 'status',
-      data: status
-    }));
-  }
+  // CORRIGIDO: Aguardar autenticação antes de enviar dados
+  ws.on('message', async (message) => {
+    try {
+      const data = JSON.parse(message);
+      
+      // Autenticar cliente WebSocket
+      if (data.type === 'auth' && data.token) {
+        const decoded = global.authManager?.verifyToken(data.token);
+        if (decoded) {
+          ws.userId = decoded.id;
+          ws.username = decoded.username;
+          
+          global.logger.info(`Cliente WebSocket autenticado: ${decoded.username} (ID: ${decoded.id})`);
+          
+          // Enviar status inicial específico do usuário
+          const userStatus = await getUserBotStatus(decoded.id);
+          ws.send(JSON.stringify({
+            type: 'status',
+            data: userStatus,
+            userId: decoded.id
+          }));
+          
+          // Confirmar autenticação
+          ws.send(JSON.stringify({
+            type: 'auth_success',
+            userId: decoded.id
+          }));
+        } else {
+          ws.send(JSON.stringify({
+            type: 'auth_error',
+            message: 'Token inválido'
+          }));
+        }
+      }
+    } catch (error) {
+      global.logger.error('Erro ao processar mensagem WebSocket:', error);
+    }
+  });
   
   ws.on('close', () => {
-    global.logger.info('Cliente WebSocket desconectado');
+    if (ws.username) {
+      global.logger.info(`Cliente WebSocket desconectado: ${ws.username}`);
+    } else {
+      global.logger.info('Cliente WebSocket desconectado');
+    }
   });
   
   ws.on('error', (error) => {
@@ -178,6 +231,7 @@ const initializeBalanceManager = async () => {
   }
 };
 
+// CORRIGIDO: Recuperar estado de todos os usuários
 const recoverBotState = async () => {
   try {
     if (!global.db) {
@@ -185,20 +239,104 @@ const recoverBotState = async () => {
       return;
     }
 
-    // TODO: Implementar recuperação de estado para múltiplos usuários
-    // Por enquanto, não fazer recuperação automática
-    global.logger.info('Recuperação de estado multi-usuário não implementada ainda');
+    global.logger.info('🔄 Iniciando recuperação de estado multi-usuário...');
+    
+    // Obter todos os usuários que tinham bots rodando
+    const runningUsers = await global.db.getRunningUserBots();
+    
+    if (runningUsers.length === 0) {
+      global.logger.info('Nenhum bot estava rodando antes do reinício');
+      return;
+    }
+    
+    global.logger.info(`Encontrados ${runningUsers.length} bots que estavam rodando`);
+    
+    // Inicializar mapas globais
+    if (!global.userBots) global.userBots = new Map();
+    if (!global.userBalanceManagers) global.userBalanceManagers = new Map();
+    
+    // Recuperar cada bot de usuário
+    for (const user of runningUsers) {
+      try {
+        global.logger.info(`🔄 Recuperando bot do usuário: ${user.username} (ID: ${user.user_id})`);
+        
+        // Carregar configurações do usuário
+        const userConfig = await global.db.getUserBotConfig(user.user_id);
+        if (!userConfig) {
+          global.logger.warn(`Configurações não encontradas para usuário ${user.user_id}, pulando...`);
+          continue;
+        }
+        
+        // Importar classes necessárias
+        const TradingBot = (await import('./tradingBot.js')).default;
+        const TradingConfig = (await import('./config.js')).default;
+        const BinanceAPI = (await import('./binanceApi.js')).default;
+        const BalanceManager = (await import('./balanceManager.js')).default;
+        
+        // Criar configuração específica do usuário
+        const config = new TradingConfig();
+        config.updateFromDatabase(userConfig);
+        
+        // Validar configurações
+        const validation = config.validateCredentials();
+        if (!validation.valid) {
+          global.logger.warn(`Credenciais inválidas para usuário ${user.user_id}: ${validation.issues.join(', ')}`);
+          await global.db.setUserBotRunningState(user.user_id, false);
+          continue;
+        }
+        
+        // Criar instâncias específicas do usuário
+        const userBot = new TradingBot(config, global.db, user.user_id);
+        const userApi = new BinanceAPI(config);
+        const userBalanceManager = new BalanceManager(global.db, userApi, user.user_id);
+        
+        // Armazenar instâncias do usuário
+        global.userBots.set(user.user_id, userBot);
+        global.userBalanceManagers.set(user.user_id, userBalanceManager);
+        
+        // Configurar callbacks específicos do usuário
+        userBot.onStatusUpdate = (status) => {
+          global.broadcastToUser(user.user_id, {
+            type: 'status',
+            data: status
+          });
+        };
+        
+        userBot.onLogMessage = (logEntry) => {
+          global.broadcastToUser(user.user_id, {
+            type: 'log',
+            data: logEntry
+          });
+        };
+        
+        userBot.onCoinsUpdate = (coinsData) => {
+          global.broadcastToUser(user.user_id, coinsData);
+        };
+        
+        // Iniciar bot do usuário
+        await userBot.start();
+        
+        global.logger.info(`✅ Bot recuperado e iniciado para usuário: ${user.username}`);
+        
+      } catch (error) {
+        global.logger.error(`❌ Erro ao recuperar bot do usuário ${user.user_id}:`, error);
+        // Marcar como parado em caso de erro
+        await global.db.setUserBotRunningState(user.user_id, false);
+      }
+    }
+    
+    global.logger.info(`🎯 Recuperação concluída. ${global.userBots.size} bots recuperados com sucesso`);
+    
   } catch (error) {
-    global.logger.error('Erro ao recuperar estado do bot:', error);
+    global.logger.error('❌ Erro geral na recuperação de estado:', error);
   }
 };
 
 // Global functions
 global.startBot = async () => {
   try {
-    // Esta função é mantida para compatibilidade, mas não deve ser usada
-    // Use startUserBot através das rotas da API
-    global.logger.warn('global.startBot() está deprecated. Use startUserBot() através da API.');
+    // DEPRECATED: Esta função é mantida apenas para compatibilidade
+    global.logger.warn('⚠️ global.startBot() está deprecated. Use startUserBot() através da API.');
     
     if (global.tradingBot) {
       await global.tradingBot.stop();
@@ -217,20 +355,24 @@ global.startBot = async () => {
     global.tradingBot.onStatusUpdate = (status) => {
       broadcast({
         type: 'status',
-        data: status
+        data: status,
+        userId: null // Broadcast global (deprecated)
       });
     };
     
     global.tradingBot.onLogMessage = (logEntry) => {
       broadcast({
         type: 'log',
-        data: logEntry
+        data: logEntry,
+        userId: null // Broadcast global (deprecated)
       });
     };
     
-    // NOVO: Callback para atualização de moedas
     global.tradingBot.onCoinsUpdate = (coinsData) => {
-      broadcast(coinsData);
+      broadcast({
+        ...coinsData,
+        userId: null // Broadcast global (deprecated)
+      });
     };
     
     await global.tradingBot.start();
@@ -260,9 +402,8 @@ global.startBot = async () => {
 
 global.stopBot = async () => {
   try {
-    // Esta função é mantida para compatibilidade, mas não deve ser usada
-    // Use stopUserBot() através das rotas da API
-    global.logger.warn('global.stopBot() está deprecated. Use stopUserBot() através da API.');
+    // DEPRECATED: Esta função é mantida apenas para compatibilidade
+    global.logger.warn('⚠️ global.stopBot() está deprecated. Use stopUserBot() através da API.');
     
     if (global.tradingBot) {
       await global.tradingBot.stop();
@@ -287,7 +428,8 @@ global.stopBot = async () => {
         positions: [],
         activeCoin: '-',
         testMode: false // Sempre produção
-      }
+      },
+      userId: null // Broadcast global (deprecated)
     });
     
     global.logger.info('Bot parado com sucesso');
@@ -345,9 +487,8 @@ global.getBotHistory = () => {
 
 global.getBotConfig = async () => {
   try {
-    // Esta função é mantida para compatibilidade, mas não deve ser usada
-    // Use getUserBotConfig() através das rotas da API
-    global.logger.warn('global.getBotConfig() está deprecated. Use getUserBotConfig() através da API.');
+    // DEPRECATED: Esta função é mantida apenas para compatibilidade
+    global.logger.warn('⚠️ global.getBotConfig() está deprecated. Use getUserBotConfig() através da API.');
     
     if (!global.db) {
       return {
@@ -390,9 +531,8 @@ global.getBotConfig = async () => {
 
 global.saveConfig = async (newConfig) => {
   try {
-    // Esta função é mantida para compatibilidade, mas não deve ser usada
-    // Use saveUserConfig() através das rotas da API
-    global.logger.warn('global.saveConfig() está deprecated. Use saveUserConfig() através da API.');
+    // DEPRECATED: Esta função é mantida apenas para compatibilidade
+    global.logger.warn('⚠️ global.saveConfig() está deprecated. Use saveUserConfig() através da API.');
     
     if (!global.db) {
       throw new Error('Database não inicializado');
@@ -415,6 +555,54 @@ global.saveConfig = async (newConfig) => {
     throw error;
   }
 };
+
+// NOVO: Função auxiliar para obter status do bot do usuário
+async function getUserBotStatus(userId) {
+  try {
+    const userBot = global.userBots?.get(userId);
+    const userState = await global.db.getUserBotState(userId);
+    
+    if (!userBot) {
+      return {
+        isRunning: false,
+        currentPrice: 0,
+        dailyLow: 0,
+        dailyHigh: 0,
+        dailyTrades: userState?.daily_trades || 0,
+        totalProfit: userState?.total_profit || 0,
+        positions: [],
+        activeCoin: '-',
+        testMode: false
+      };
+    }
+    
+    const status = userBot.getStatus();
+    return {
+      isRunning: userBot.isRunning,
+      currentPrice: status.currentPrice || 0,
+      dailyLow: status.dailyLow || 0,
+      dailyHigh: status.dailyHigh || 0,
+      dailyTrades: status.dailyTrades || 0,
+      totalProfit: status.totalProfit || 0,
+      positions: status.positions || [],
+      activeCoin: status.activeCoin || '-',
+      testMode: false
+    };
+  } catch (error) {
+    global.logger.error(`Erro ao obter status do usuário ${userId}:`, error);
+    return {
+      isRunning: false,
+      currentPrice: 0,
+      dailyLow: 0,
+      dailyHigh: 0,
+      dailyTrades: 0,
+      totalProfit: 0,
+      positions: [],
+      activeCoin: '-',
+      testMode: false
+    };
+  }
+}
 
 // Start server
 const startServer = async () => {

@@ -507,6 +507,24 @@ export default class Database {
     }
   }
 
+  // NOVO: Obter usuários que tinham bots rodando
+  async getRunningUserBots() {
+    try {
+      const query = `
+        SELECT ubs.user_id, u.username, u.email
+        FROM user_bot_states ubs
+        JOIN users u ON ubs.user_id = u.id
+        WHERE ubs.is_running = 1 AND u.approved = 1
+      `;
+      
+      const rows = await this.db.all(query);
+      return rows || [];
+    } catch (error) {
+      logger.error('Erro ao obter usuários com bots rodando:', error);
+      return [];
+    }
+  }
+
   // Obter configuração do bot do usuário
   async getUserBotConfig(userId) {
     try {

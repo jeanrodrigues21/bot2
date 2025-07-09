@@ -426,12 +426,30 @@ class TradingDashboard {
                 this.reconnectAttempts = 0;
                 this.updateConnectionStatus(true);
                 this.addLog('Conectado ao servidor');
+                
+                // CORRIGIDO: Autenticar WebSocket com token do usuário
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    this.ws.send(JSON.stringify({
+                        type: 'auth',
+                        token: token
+                    }));
+                }
             };
             
             this.ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    this.handleMessage(data);
+                    
+                    // CORRIGIDO: Processar apenas mensagens do próprio usuário
+                    if (data.type === 'auth_success') {
+                        this.addLog('Autenticação WebSocket bem-sucedida');
+                    } else if (data.type === 'auth_error') {
+                        this.addLog('Erro na autenticação WebSocket: ' + data.message);
+                        this.redirectToLogin();
+                    } else {
+                        this.handleMessage(data);
+                    }
                 } catch (error) {
                     console.error('Erro ao processar mensagem:', error);
                 }

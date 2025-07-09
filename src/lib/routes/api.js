@@ -387,27 +387,24 @@ async function startUserBot(userId) {
     
     // Configurar callbacks para WebSocket
     userBot.onStatusUpdate = (status) => {
-      // Broadcast apenas para o usuário específico (implementar filtro por usuário)
-      global.broadcast?.({
+      // CORRIGIDO: Broadcast específico para o usuário
+      global.broadcastToUser?.(userId, {
         type: 'status',
-        data: status,
-        userId: userId
+        data: status
       });
     };
     
     userBot.onLogMessage = (logEntry) => {
-      global.broadcast?.({
+      // CORRIGIDO: Logs específicos para o usuário
+      global.broadcastToUser?.(userId, {
         type: 'log',
-        data: logEntry,
-        userId: userId
+        data: logEntry
       });
     };
     
     userBot.onCoinsUpdate = (coinsData) => {
-      global.broadcast?.({
-        ...coinsData,
-        userId: userId
-      });
+      // CORRIGIDO: Dados de moedas específicos para o usuário
+      global.broadcastToUser?.(userId, coinsData);
     };
     
     // Iniciar bot do usuário

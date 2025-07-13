@@ -168,6 +168,12 @@ export default class BotStateManager {
       }
     }
     
+    // Verificar se tem dados mínimos necessários
+    if (state.isRunning === undefined) {
+      logger.warn('Estado inválido: propriedade isRunning não encontrada');
+      return false;
+    }
+    
     return true;
   }
 

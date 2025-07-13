@@ -590,8 +590,10 @@ const startServer = async () => {
     // Recuperar estado do bot após inicializar o database
     await recoverBotState();
     
-    // CORRIGIDO: Inicializar SystemMonitor após todos os outros componentes
-    await initializeSystemMonitor();
+    // Inicializar SystemMonitor após todos os outros componentes
+    setTimeout(async () => {
+      await initializeSystemMonitor();
+    }, 5000); // Aguardar 5 segundos para garantir que tudo esteja estabilizado
     
     // Start HTTP server with WebSocket support
     server.listen(port, () => {

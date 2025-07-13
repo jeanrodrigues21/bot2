@@ -171,7 +171,8 @@ export default class AutoRecovery {
       await userBot.start();
       
       this.recoveryResults.successful++;
-      logger.info(`✅ Bot recuperado e iniciado com sucesso para usuário: ${username}`);
+      if (previousState && this.stateManager.isValidStateForRecovery(previousState)) {
+      }
       
     } catch (error) {
       this.recoveryResults.failed++;

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>Trading Bot Dashboard <span id="statusIndicator" class="status-indicator status-stopped"></span></h1>
+                <p>Controle e monitoramento em tempo real - MODO PRODUÇÃO</p>
+            </div>
+            <button id="themeToggle" class="theme-toggle">🌙 Tema Dark</button>
+        </div>
+
+        <div id="connectionStatus" class="connection-status disconnected">Desconectado</div>
+
+        <div id="alertContainer"></div>
+
+        <div class="dashboard-grid">
+            <!-- Controles -->
+            <div class="card">
+                <h3>Controles do Bot</h3>
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-start">Iniciar Bot</button>
+                    <button id="stopBtn" class="btn btn-stop">Parar Bot</button>
+                    <button id="forceCheckBtn" class="btn btn-secondary">Verificação Forçada</button>
+                    <button id="closePositionsBtn" class="btn btn-secondary">Fechar Posições</button>
+                    <button id="configBtn" class="btn btn-secondary">⚙️ Configurações</button>
+                </div>
+                <div class="loading" id="controlsLoading" style="display: none;">
+                    <div class="spinner"></div>
+                    Processando...
+                </div>
+            </div>
+
+            <!-- Status Geral -->
+            <div class="card">
+                <h3>Status Geral</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="currentPrice">$ 0.00</div>
+                        <div class="stat-label">Preço Atual</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="dailyTrades">0</div>
+                        <div class="stat-label">Trades Hoje</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalProfit">$ 0.00</div>
+                        <div class="stat-label">Lucro Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeCoin">-</div>
+                        <div class="stat-label">Moeda Ativa</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saldos -->
+            <div class="card">
+                <h3>Saldos</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="usdtBalance">$ 0.00</div>
+                        <div class="stat-label">Saldo USDT</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="btcBalance">0.00000000</div>
+                        <div class="stat-label">Saldo BTC</div>
+                    </div>
+                </div>
+                <button id="refreshBalanceBtn" class="btn btn-secondary" style="margin-top: 15px; width: 100%;">Atualizar Saldos</button>
+            </div>
+
+            <!-- Posições Abertas -->
+            <div class="card">
+                <h3>Posições Abertas</h3>
+                <div id="positionsList" class="positions-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Carregando posições...
+                    </div>
+                </div>
+            </div>
+
+            <!-- CORRIGIDO: Variação Diária Inteligente -->
+            <div class="card">
+                <h3>Variação da Moeda Ativa</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="dailyLow">$ 0.00</div>
+                        <div class="stat-label">Mínima</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="dailyHigh">$ 0.00</div>
+                        <div class="stat-label">Máxima</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOVO: Moedas Monitoradas (Trading Dinâmico) -->
+            <div class="card" id="monitoredCoinsCard" style="display: none;">
+                <h3>Top 10 Moedas Monitoradas</h3>
+                <div id="monitoredCoinsList" class="monitored-coins-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Carregando moedas...
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary); text-align: center;">
+                    Ordenadas por volume de negociação
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Configurações -->
+        <div id="configModal" class="config-modal">
+            <div class="config-content">
+                <div class="config-header">
+                    <h3>Configurações do Bot</h3>
+                    <button id="configCloseBtn" class="config-close">&times;</button>
+                </div>
+                
+                <div class="config-tabs">
+                    <button class="tab-btn active" data-tab="trading">Trading</button>
+                    <button class="tab-btn" data-tab="strategies">Estratégias</button>
+                    <button class="tab-btn" data-tab="api">API Binance</button>
+                    <button class="tab-btn" data-tab="advanced">Avançado</button>
+                </div>
+
+                <form id="configForm" class="config-form">
+                    <!-- Aba Trading -->
+                    <div class="tab-content active" id="trading-tab">
+                        <h4>Configurações de Trading</h4>
+                        
+                        <div class="form-group">
+                            <label for="tradingMode">Modo de Trading</label>
+                            <select id="tradingMode">
+                                <option value="single">Moeda Única</option>
+                                <option value="dynamic">Trading Dinâmico</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="singleSymbolGroup">
+                            <label for="symbol">Par de Trading</label>
+                            <select id="symbol">
+                                <option value="BTCUSDT">BTC/USDT</option>
+                                <option value="ETHUSDT">ETH/USDT</option>
+                                <option value="BNBUSDT">BNB/USDT</option>
+                                <option value="ADAUSDT">ADA/USDT</option>
+                                <option value="SOLUSDT">SOL/USDT</option>
+                                <option value="XRPUSDT">XRP/USDT</option>
+                                <option value="DOTUSDT">DOT/USDT</option>
+                                <option value="DOGEUSDT">DOGE/USDT</option>
+                                <option value="AVAXUSDT">AVAX/USDT</option>
+                                <option value="MATICUSDT">MATIC/USDT</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="dynamicCoinsGroup" style="display: none;">
+                            <label for="dynamicCoins">Top 10 Moedas para Trading Dinâmico</label>
+                            <div class="dynamic-coins-selector">
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-BTCUSDT" value="BTCUSDT" checked>
+                                    <label for="coin-BTCUSDT">BTC/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-ETHUSDT" value="ETHUSDT" checked>
+                                    <label for="coin-ETHUSDT">ETH/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-BNBUSDT" value="BNBUSDT" checked>
+                                    <label for="coin-BNBUSDT">BNB/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-ADAUSDT" value="ADAUSDT" checked>
+                                    <label for="coin-ADAUSDT">ADA/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-SOLUSDT" value="SOLUSDT" checked>
+                                    <label for="coin-SOLUSDT">SOL/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-XRPUSDT" value="XRPUSDT" checked>
+                                    <label for="coin-XRPUSDT">XRP/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-DOTUSDT" value="DOTUSDT" checked>
+                                    <label for="coin-DOTUSDT">DOT/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-DOGEUSDT" value="DOGEUSDT" checked>
+                                    <label for="coin-DOGEUSDT">DOGE/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-AVAXUSDT" value="AVAXUSDT" checked>
+                                    <label for="coin-AVAXUSDT">AVAX/USDT</label>
+                                </div>
+                                <div class="coin-checkbox">
+                                    <input type="checkbox" id="coin-MATICUSDT" value="MATICUSDT" checked>
+                                    <label for="coin-MATICUSDT">MATIC/USDT</label>
+                                </div>
+                            </div>
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 8px; display: block;">
+                                💡 O bot monitorará todas as moedas selecionadas e operará automaticamente na primeira que atender aos critérios de compra
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tradeAmountPercent">Porcentagem do Saldo por Trade (%)</label>
+                            <input type="number" id="tradeAmountPercent" step="0.1" min="0.1" max="100" value="10">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                💡 Porcentagem do saldo USDT total a ser usado em cada trade (1% a 100%)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="minTradeAmountUsdt">Valor Mínimo por Trade (USDT)</label>
+                            <input type="number" id="minTradeAmountUsdt" step="0.01" min="1" value="5">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                Valor mínimo em USDT mesmo que a porcentagem resulte em menos
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="maxTradeAmountUsdt">Valor Máximo por Trade (USDT)</label>
+                            <input type="number" id="maxTradeAmountUsdt" step="0.01" min="10" value="10000">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                Valor máximo em USDT mesmo que a porcentagem resulte em mais
+                            </small>
+                        </div>
+                        
+                        <div class="trade-preview" style="margin-top: 15px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h5 style="margin-bottom: 8px; color: var(--text-primary); font-size: 14px;">Prévia do Valor de Trade:</h5>
+                            <div id="tradePreview" style="font-size: 13px; color: var(--text-secondary);">
+                                Configure os valores acima para ver a prévia
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="dailyProfit">Meta Lucro Diário (%)</label>
+                            <input type="number" id="dailyProfit" step="0.01" min="0.1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="stopLoss">Stop Loss (%)</label>
+                            <input type="number" id="stopLoss" step="0.01" min="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxTrades">Máx. Trades/Dia</label>
+                            <input type="number" id="maxTrades" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="minPriceChange">Min. Mudança Preço (%)</label>
+                            <input type="number" id="minPriceChange" step="0.01" min="0.01">
+                        </div>
+                    </div>
+
+                    <!-- NOVA ABA: Estratégias -->
+                    <div class="tab-content" id="strategies-tab">
+                        <h4>Alocação de Estratégias</h4>
+                        
+                        <div class="form-group">
+                            <label for="enableReinforcement">
+                                <input type="checkbox" id="enableReinforcement" checked>
+                                Habilitar Estratégia de Reforço
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="originalStrategyPercent">Estratégia Original (%)</label>
+                            <input type="number" id="originalStrategyPercent" min="10" max="90" value="70">
+                            <small>Porcentagem do saldo para a estratégia principal</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reinforcementStrategyPercent">Estratégia de Reforço (%)</label>
+                            <input type="number" id="reinforcementStrategyPercent" min="10" max="90" value="30" readonly>
+                            <small>Porcentagem do saldo para compras de reforço</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reinforcementTrigger">Trigger de Reforço (%)</label>
+                            <input type="number" id="reinforcementTrigger" step="0.1" min="0.5" max="5" value="1.0">
+                            <small>Queda percentual que ativa compra de reforço</small>
+                        </div>
+                        
+                        <div class="allocation-preview">
+                            <h5>Prévia de Alocação (baseado em $1000 USDT):</h5>
+                            <div class="allocation-item">
+                                <span>Estratégia Original:</span>
+                                <span id="previewOriginal">$700.00</span>
+                            </div>
+                            <div class="allocation-item">
+                                <span>Estratégia de Reforço:</span>
+                                <span id="previewReinforcement">$300.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba API Binance -->
+                    <div class="tab-content" id="api-tab">
+                        <h4>Credenciais da API Binance</h4>
+                        <div class="form-group">
+                            <label for="apiKey">API Key</label>
+                            <input type="password" id="apiKey" placeholder="Sua API Key da Binance">
+                        </div>
+                        <div class="form-group">
+                            <label for="apiSecret">Secret Key</label>
+                            <input type="password" id="apiSecret" placeholder="Sua Secret Key da Binance">
+                        </div>
+                        <div class="form-group">
+                            <label for="baseUrl">URL Base da API</label>
+                            <select id="baseUrl">
+                                <option value="https://api.binance.com">Produção (api.binance.com)</option>
+                                <option value="https://testnet.binance.vision">Testnet (testnet.binance.vision)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Aba Avançado -->
+                    <div class="tab-content" id="advanced-tab">
+                        <h4>Configurações Avançadas</h4>
+                        <div class="form-group">
+                            <label for="buyThresholdFromLow">Threshold de Compra da Mínima (%)</label>
+                            <input type="number" id="buyThresholdFromLow" step="0.01" min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="minHistoryForAnalysis">Min. Histórico para Análise</label>
+                            <input type="number" id="minHistoryForAnalysis" min="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="recentTrendWindow">Janela de Tendência Recente</label>
+                            <input type="number" id="recentTrendWindow" min="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="buyCooldownSeconds">Cooldown de Compra (segundos)</label>
+                            <input type="number" id="buyCooldownSeconds" min="60">
+                        </div>
+                        <div class="form-group">
+                            <label for="pricePollInterval">Intervalo de Polling (segundos)</label>
+                            <input type="number" id="pricePollInterval" min="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="logFrequency">Frequência de Log</label>
+                            <input type="number" id="logFrequency" min="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="makerFee">Taxa Maker (%)</label>
+                            <input type="number" id="makerFee" step="0.001" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="takerFee">Taxa Taker (%)</label>
+                            <input type="number" id="takerFee" step="0.001" min="0">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Salvar Configurações</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card">
+            <h3>Logs do Sistema</h3>
+            <div id="logContainer" class="log-container">
+                <div class="log-entry">Sistema iniciado - aguardando conexão...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

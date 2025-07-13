@@ -356,6 +356,14 @@
                             <label for="takerFee">Taxa Taker (%)</label>
                             <input type="number" id="takerFee" step="0.001" min="0">
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="buyOnDropPercent">Queda da Máxima para Compra (%)</label>
+                            <input type="number" id="buyOnDropPercent" step="0.1" min="0.1" max="5" value="0.7">
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 4px; display: block;">
+                                Nova estratégia: comprar quando o preço cair X% da máxima diária
+                            </small>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Salvar Configurações</button>

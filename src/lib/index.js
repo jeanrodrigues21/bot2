@@ -16,6 +16,8 @@ import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import SystemMonitor from './systemMonitor.js';
+import BotStateManager from './modules/botStateManager.js';
+import AutoRecovery from './modules/autoRecovery.js';
 
 // Load environment variables first
 dotenv.config();
@@ -49,6 +51,8 @@ global.authManager = null;
 global.userBots = new Map(); // Map<userId, TradingBot>
 global.userBalanceManagers = new Map(); // Map<userId, BalanceManager>
 global.systemMonitor = null;
+global.botStateManager = null;
+global.autoRecovery = null;
 global.wss = wss; // CORRIGIDO: Tornar WebSocket disponível globalmente
 global.server = server; // CORRIGIDO: Tornar servidor disponível globalmente
 
@@ -235,6 +239,24 @@ const initializeBalanceManager = async () => {
   }
 };
 
+// NOVO: Inicializar gerenciadores de estado e recuperação
+const initializeBotManagers = async () => {
+  try {
+    global.logger.info('🔧 Inicializando gerenciadores de bot...');
+    
+    // Inicializar gerenciador de estado
+    global.botStateManager = new BotStateManager(global.db);
+    
+    // Inicializar sistema de recuperação automática
+    global.autoRecovery = new AutoRecovery(global.db, global.botStateManager);
+    
+    global.logger.info('✅ Gerenciadores de bot inicializados com sucesso');
+  } catch (error) {
+    global.logger.error('❌ Erro ao inicializar gerenciadores de bot:', error);
+    throw error;
+  }
+};
+
 // CORRIGIDO: Inicialização do SystemMonitor
 const initializeSystemMonitor = async () => {
   try {
@@ -257,145 +279,24 @@ const initializeSystemMonitor = async () => {
 // CORRIGIDO: Recuperar estado de todos os usuários
 const recoverBotState = async () => {
   try {
-    if (!global.db) {
-      global.logger.warn('Database não inicializado para recuperar estado do bot');
+    if (!global.db || !global.autoRecovery) {
+      global.logger.warn('Componentes necessários não inicializados para recuperação');
       return;
     }
 
-    global.logger.info('🔄 Iniciando recuperação de estado multi-usuário...');
+    global.logger.info('🔄 Iniciando recuperação automática de bots...');
     
-    // Aguardar um pouco para garantir que o banco esteja totalmente inicializado
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Usar o novo sistema de recuperação automática
+    const results = await global.autoRecovery.startRecovery();
     
-    // Obter todos os usuários que tinham bots rodando
-    const runningUsers = await global.db.getRunningUserBots();
-    
-    if (runningUsers.length === 0) {
-      global.logger.info('Nenhum bot estava rodando antes do reinício');
-      return;
-    }
-    
-    global.logger.info(`🎯 Encontrados ${runningUsers.length} usuários com bots que estavam rodando:`);
-    runningUsers.forEach(user => {
-      global.logger.info(`  - ${user.username} (ID: ${user.user_id})`);
-    });
-    
-    // Inicializar mapas globais
-    if (!global.userBots) global.userBots = new Map();
-    if (!global.userBalanceManagers) global.userBalanceManagers = new Map();
-    
-    let successCount = 0;
-    let errorCount = 0;
-    
-    // Recuperar cada bot de usuário
-    for (const user of runningUsers) {
-      try {
-        global.logger.info(`🔄 Recuperando bot do usuário: ${user.username} (ID: ${user.user_id})`);
-        
-        // Carregar configurações do usuário
-        const userConfig = await global.db.getUserBotConfig(user.user_id);
-        if (!userConfig) {
-          global.logger.warn(`Configurações não encontradas para usuário ${user.user_id}, pulando...`);
-          await global.db.setUserBotRunningState(user.user_id, false);
-          errorCount++;
-          continue;
-        }
-        
-        // Verificar se tem credenciais da API
-        if (!userConfig.apiKey || !userConfig.apiSecret) {
-          global.logger.warn(`❌ Credenciais da API não encontradas para usuário ${user.user_id}, marcando como parado`);
-          await global.db.setUserBotRunningState(user.user_id, false);
-          errorCount++;
-          continue;
-        }
-        
-        // Importar classes necessárias
-        const TradingBot = (await import('./tradingBot.js')).default;
-        const TradingConfig = (await import('./config.js')).default;
-        const BinanceAPI = (await import('./binanceApi.js')).default;
-        const BalanceManager = (await import('./balanceManager.js')).default;
-        
-        // Criar configuração específica do usuário
-        const config = new TradingConfig();
-        config.updateFromDatabase(userConfig);
-        
-        // Validar configurações
-        try {
-          config.validate();
-        } catch (validationError) {
-          global.logger.warn(`❌ Configurações inválidas para usuário ${user.user_id}: ${validationError.message}`);
-          await global.db.setUserBotRunningState(user.user_id, false);
-          errorCount++;
-          continue;
-        }
-        
-        // Testar conexão com a API antes de iniciar
-        const testApi = new BinanceAPI(config);
-        const connectionTest = await testApi.testConnection();
-        if (!connectionTest) {
-          global.logger.warn(`❌ Falha na conexão com API Binance para usuário ${user.user_id}, marcando como parado`);
-          await global.db.setUserBotRunningState(user.user_id, false);
-          errorCount++;
-          continue;
-        }
-        
-        // Criar instâncias específicas do usuário
-        const userBot = new TradingBot(config, global.db, user.user_id);
-        const userApi = new BinanceAPI(config);
-        const userBalanceManager = new BalanceManager(global.db, userApi, user.user_id);
-        
-        // Armazenar instâncias do usuário
-        global.userBots.set(user.user_id, userBot);
-        global.userBalanceManagers.set(user.user_id, userBalanceManager);
-        
-        // Configurar callbacks específicos do usuário
-        userBot.onStatusUpdate = (status) => {
-          global.broadcastToUser(user.user_id, {
-            type: 'status',
-            data: status
-          });
-        };
-        
-        userBot.onLogMessage = (logEntry) => {
-          global.broadcastToUser(user.user_id, {
-            type: 'log',
-            data: logEntry
-          });
-        };
-        
-        userBot.onCoinsUpdate = (coinsData) => {
-          global.broadcastToUser(user.user_id, coinsData);
-        };
-        
-        // Iniciar bot do usuário
-        await userBot.start();
-        
-        successCount++;
-        global.logger.info(`✅ Bot recuperado e iniciado com sucesso para usuário: ${user.username} (${successCount}/${runningUsers.length})`);
-        
-      } catch (error) {
-        errorCount++;
-        global.logger.error(`❌ Erro ao recuperar bot do usuário ${user.user_id} (${user.username}):`, error.message);
-        // Marcar como parado em caso de erro
-        try {
-          await global.db.setUserBotRunningState(user.user_id, false);
-        } catch (dbError) {
-          global.logger.error(`Erro ao marcar bot como parado para usuário ${user.user_id}:`, dbError);
-        }
-      }
-    }
-    
-    global.logger.info(`🎯 Recuperação de estado concluída:`);
-    global.logger.info(`  ✅ Sucessos: ${successCount}`);
-    global.logger.info(`  ❌ Erros: ${errorCount}`);
-    global.logger.info(`  📊 Total de bots ativos: ${global.userBots.size}`);
-    
-    if (successCount > 0) {
-      global.logger.info(`🚀 ${successCount} bot(s) recuperado(s) e rodando automaticamente!`);
+    if (results.successful > 0) {
+      global.logger.info(`🚀 Recuperação automática concluída: ${results.successful} bots recuperados!`);
+    } else {
+      global.logger.info('✅ Recuperação automática concluída - nenhum bot para recuperar');
     }
     
   } catch (error) {
-    global.logger.error('❌ Erro geral na recuperação de estado:', error);
+    global.logger.error('❌ Erro na recuperação automática:', error);
   }
 };
 
@@ -682,6 +583,9 @@ const startServer = async () => {
     
     // Initialize balance manager
     await initializeBalanceManager();
+    
+    // Initialize bot managers
+    await initializeBotManagers();
     
     // Recuperar estado do bot após inicializar o database
     await recoverBotState();

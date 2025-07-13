@@ -865,6 +865,9 @@ class TradingDashboard {
             makerFee: parseFloat(document.getElementById('makerFee').value),
             takerFee: parseFloat(document.getElementById('takerFee').value),
             
+            // Nova estratégia
+            buyOnDropPercent: parseFloat(document.getElementById('buyOnDropPercent').value),
+            
             testMode: false // Sempre produção
         };
         
@@ -971,6 +974,9 @@ class TradingDashboard {
             document.getElementById('logFrequency').value = config.logFrequency || 60;
             document.getElementById('makerFee').value = config.makerFee || 0.001;
             document.getElementById('takerFee').value = config.takerFee || 0.001;
+            
+            // Nova estratégia
+            document.getElementById('buyOnDropPercent').value = config.buyOnDropPercent || 0.7;
             
             // Atualizar interface
             this.handleTradingModeChange();

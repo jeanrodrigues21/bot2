@@ -60,6 +60,9 @@ export default class TradingConfig {
     // Taxas (valores padrão)
     this.makerFee = 0.001;
     this.takerFee = 0.001;
+    
+    // NOVA CONFIGURAÇÃO - Estratégia de compra na queda da máxima
+    this.buyOnDropPercent = 0.7; // Porcentagem de queda da máxima para ativar compra
   }
   
   // Atualizar configurações com dados do banco
@@ -106,6 +109,9 @@ export default class TradingConfig {
     this.logFrequency = dbConfig.logFrequency || this.logFrequency;
     this.makerFee = dbConfig.makerFee || this.makerFee;
     this.takerFee = dbConfig.takerFee || this.takerFee;
+    
+    // Nova estratégia
+    this.buyOnDropPercent = dbConfig.buyOnDropPercent || this.buyOnDropPercent;
   }
   
   validate() {

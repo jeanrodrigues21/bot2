@@ -106,6 +106,7 @@ export default class BotStateManager {
    */
   async getRunningBots() {
     try {
+      logger.info('🔍 Buscando usuários com bots rodando...');
       return await this.db.getRunningUserBots();
     } catch (error) {
       logger.error('Erro ao obter bots rodando:', error);
@@ -163,7 +164,7 @@ export default class BotStateManager {
     if (state.lastUpdate) {
       const hoursSinceUpdate = (Date.now() - new Date(state.lastUpdate).getTime()) / (1000 * 60 * 60);
       if (hoursSinceUpdate > 24) {
-        logger.warn('Estado muito antigo para recuperação automática');
+        logger.warn(`Estado muito antigo para recuperação automática: ${hoursSinceUpdate.toFixed(1)} horas`);
         return false;
       }
     }
@@ -174,6 +175,7 @@ export default class BotStateManager {
       return false;
     }
     
+    logger.info(`✅ Estado válido para recuperação (${state.lastUpdate ? new Date(state.lastUpdate).toLocaleString() : 'sem timestamp'})`);
     return true;
   }
 

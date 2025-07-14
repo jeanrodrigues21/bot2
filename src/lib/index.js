@@ -290,9 +290,29 @@ const recoverBotState = async () => {
     const results = await global.autoRecovery.startRecovery();
     
     if (results.successful > 0) {
-      global.logger.info(`🚀 Recuperação automática concluída: ${results.successful} bots recuperados!`);
+      global.logger.info(`🚀 Recuperação automática concluída com sucesso: ${results.successful} bots recuperados!`);
+      
+      // Broadcast para todos os clientes sobre a recuperação bem-sucedida
+      if (global.broadcast) {
+        global.broadcast({
+          type: 'system_notification',
+          data: {
+            message: `Sistema recuperado: ${results.successful} bot(s) reiniciado(s) automaticamente`,
+            type: 'success'
+          }
+        });
+      }
     } else {
-      global.logger.info('✅ Recuperação automática concluída - nenhum bot para recuperar');
+      if (results.attempted > 0) {
+        global.logger.warn(`⚠️ Recuperação automática falhou: ${results.failed} de ${results.attempted} bots falharam`);
+        
+        if (results.errors.length > 0) {
+          global.logger.warn('Erros na recuperação:');
+          results.errors.forEach(error => global.logger.warn(`  - ${error}`));
+        }
+      } else {
+        global.logger.info('✅ Recuperação automática concluída - nenhum bot para recuperar');
+      }
     }
     
   } catch (error) {

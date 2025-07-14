@@ -242,13 +242,18 @@ class SystemMonitor {
       const runningCount = userBots.size;
       
       let errorCount = 0;
+      let runningBots = 0;
       
       // Verificar cada bot individual
       for (const [userId, bot] of userBots) {
         try {
-          if (!bot || !bot.isRunning) {
+          if (!bot) {
             errorCount++;
             continue;
+          }
+          
+          if (bot.isRunning) {
+            runningBots++;
           }
           
           // Verificar se o bot está respondendo
@@ -265,10 +270,18 @@ class SystemMonitor {
         }
       }
       
-      if (errorCount === 0) {
+      // Considerar saudável se há bots rodando ou se não há bots (estado inicial)
+      if (errorCount === 0 && (runningBots > 0 || userBots.size === 0)) {
         this.updateComponentStatus(component, 'healthy', 0);
-      } else {
+      } else if (runningBots > 0 && errorCount < runningBots) {
         this.updateComponentStatus(component, 'warning', errorCount);
+      } else {
+        this.updateComponentStatus(component, 'error', errorCount);
+      }
+      
+      // Log apenas se houver problemas
+      if (errorCount > 0) {
+        global.logger?.warn(`UserBots status: ${userBots.size} total, ${runningBots} rodando, ${errorCount} com erro`);
       }
       
     } catch (error) {

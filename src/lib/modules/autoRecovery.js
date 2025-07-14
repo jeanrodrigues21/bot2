@@ -54,7 +54,7 @@ export default class AutoRecovery {
         await this.recoverUserBot(user);
         
         // Pequena pausa entre recuperações para evitar sobrecarga
-        await this.sleep(1000);
+        await this.sleep(2000);
       }
       
       // Log do resultado final
@@ -78,54 +78,56 @@ export default class AutoRecovery {
     const username = user.username;
     
     try {
-      logger.info(`🔄 Recuperando bot do usuário: ${username} (ID: ${userId})`);
+      logger.info(`🔄 Iniciando recuperação do bot para usuário: ${username} (ID: ${userId})`);
       
-      // Verificar se o usuário ainda está aprovado
+      // PASSO 1: Verificar se o usuário ainda está aprovado
+      logger.info(`📋 Verificando status do usuário ${username}...`);
       const currentUser = await this.db.getUserById(userId);
       if (!currentUser || !currentUser.approved) {
-        logger.warn(`❌ Usuário ${username} não está mais aprovado, pulando recuperação`);
+        logger.warn(`❌ Usuário ${username} não está mais aprovado, marcando como parado`);
         await this.stateManager.setBotRunning(userId, false);
         this.recoveryResults.failed++;
+        this.recoveryResults.errors.push(`${username}: Usuário não aprovado`);
         return;
       }
+      logger.info(`✅ Usuário ${username} está aprovado`);
       
-      // Carregar configurações do usuário
+      // PASSO 2: Carregar configurações do usuário
+      logger.info(`⚙️ Carregando configurações do usuário ${username}...`);
       const userConfig = await this.db.getUserBotConfig(userId);
       if (!userConfig) {
-        logger.warn(`❌ Configurações não encontradas para usuário ${username}, pulando...`);
+        logger.warn(`❌ Configurações não encontradas para usuário ${username}`);
         await this.stateManager.setBotRunning(userId, false);
         this.recoveryResults.failed++;
+        this.recoveryResults.errors.push(`${username}: Configurações não encontradas`);
         return;
       }
+      logger.info(`✅ Configurações carregadas para ${username}`);
       
-      // Verificar credenciais da API
+      // PASSO 3: Verificar credenciais da API
+      logger.info(`🔑 Verificando credenciais da API para ${username}...`);
       if (!userConfig.apiKey || !userConfig.apiSecret) {
-        logger.warn(`❌ Credenciais da API não encontradas para usuário ${username}, marcando como parado`);
+        logger.warn(`❌ Credenciais da API não encontradas para usuário ${username}`);
         await this.stateManager.setBotRunning(userId, false);
         this.recoveryResults.failed++;
+        this.recoveryResults.errors.push(`${username}: Credenciais da API ausentes`);
         return;
       }
+      logger.info(`✅ Credenciais da API encontradas para ${username}`);
       
-      // Carregar estado anterior do bot
-      const previousState = await this.stateManager.loadBotState(userId);
-      
-      if (!this.stateManager.isValidStateForRecovery(previousState)) {
-        logger.warn(`❌ Estado inválido para recuperação do usuário ${username}`);
-        await this.stateManager.setBotRunning(userId, false);
-        this.recoveryResults.failed++;
-        return;
-      }
-      
-      // Importar classes necessárias dinamicamente
+      // PASSO 4: Importar classes necessárias
+      logger.info(`📦 Importando classes de trading...`);
       const { TradingBot, TradingConfig, BinanceAPI, BalanceManager } = await this.importTradingClasses();
+      logger.info(`✅ Classes de trading importadas`);
       
-      // Criar configuração específica do usuário
+      // PASSO 5: Criar e validar configuração
+      logger.info(`🔧 Criando configuração para ${username}...`);
       const config = new TradingConfig();
       config.updateFromDatabase(userConfig);
       
-      // Validar configurações
       try {
         config.validate();
+        logger.info(`✅ Configuração válida para ${username}`);
       } catch (validationError) {
         logger.warn(`❌ Configurações inválidas para usuário ${username}: ${validationError.message}`);
         await this.stateManager.setBotRunning(userId, false);
@@ -134,54 +136,80 @@ export default class AutoRecovery {
         return;
       }
       
-      // Testar conexão com a API antes de iniciar
+      // PASSO 6: Testar conexão com a API
+      logger.info(`🌐 Testando conexão com API Binance para ${username}...`);
       const testApi = new BinanceAPI(config);
       const connectionTest = await testApi.testConnection();
       if (!connectionTest) {
-        logger.warn(`❌ Falha na conexão com API Binance para usuário ${username}, marcando como parado`);
+        logger.warn(`❌ Falha na conexão com API Binance para usuário ${username}`);
         await this.stateManager.setBotRunning(userId, false);
         this.recoveryResults.failed++;
         this.recoveryResults.errors.push(`${username}: Falha na API Binance`);
         return;
       }
+      logger.info(`✅ Conexão com API Binance OK para ${username}`);
       
-      // Criar instâncias específicas do usuário
+      // PASSO 7: Criar instâncias específicas do usuário
+      logger.info(`🤖 Criando instâncias do bot para ${username}...`);
       const userBot = new TradingBot(config, this.db, userId);
       const userApi = new BinanceAPI(config);
       const userBalanceManager = new BalanceManager(this.db, userApi, userId);
+      logger.info(`✅ Instâncias criadas para ${username}`);
       
-      // Inicializar mapas globais se não existirem
-      if (!global.userBots) global.userBots = new Map();
-      if (!global.userBalanceManagers) global.userBalanceManagers = new Map();
-      
-      // Armazenar instâncias do usuário
-      global.userBots.set(userId, userBot);
-      global.userBalanceManagers.set(userId, userBalanceManager);
-      
-      // Configurar callbacks para WebSocket
-      this.setupBotCallbacks(userBot, userId);
-      
-      // Restaurar estado anterior se válido
-      if (previousState && previousState.priceHistory) {
-        userBot.restoreState(previousState);
-        logger.info(`📊 Estado anterior restaurado para usuário ${username}`);
+      // PASSO 8: Inicializar mapas globais se não existirem
+      if (!global.userBots) {
+        global.userBots = new Map();
+        logger.info(`📋 Mapa global userBots inicializado`);
+      }
+      if (!global.userBalanceManagers) {
+        global.userBalanceManagers = new Map();
+        logger.info(`📋 Mapa global userBalanceManagers inicializado`);
       }
       
-      // Iniciar bot do usuário
-      await userBot.start();
+      // PASSO 9: Armazenar instâncias do usuário
+      global.userBots.set(userId, userBot);
+      global.userBalanceManagers.set(userId, userBalanceManager);
+      logger.info(`✅ Instâncias armazenadas nos mapas globais para ${username}`);
       
-      this.recoveryResults.successful++;
+      // PASSO 10: Configurar callbacks para WebSocket
+      logger.info(`🔌 Configurando callbacks WebSocket para ${username}...`);
+      this.setupBotCallbacks(userBot, userId);
+      logger.info(`✅ Callbacks WebSocket configurados para ${username}`);
+      
+      // PASSO 11: Carregar estado anterior se disponível
+      logger.info(`💾 Carregando estado anterior para ${username}...`);
+      const previousState = await this.stateManager.loadBotState(userId);
       if (previousState && this.stateManager.isValidStateForRecovery(previousState)) {
+        logger.info(`📊 Restaurando estado anterior para ${username}...`);
+        await this.restoreBotState(userBot, previousState);
+        logger.info(`✅ Estado anterior restaurado para ${username}`);
+      } else {
+        logger.info(`ℹ️ Nenhum estado anterior válido encontrado para ${username}`);
+      }
+      
+      // PASSO 12: Iniciar bot do usuário
+      logger.info(`🚀 Iniciando bot para ${username}...`);
+      await userBot.start();
+      logger.info(`✅ Bot iniciado com sucesso para ${username}`);
+      
+      // PASSO 13: Confirmar que está rodando
+      if (userBot.isRunning) {
+        this.recoveryResults.successful++;
+        logger.info(`🎉 Bot do usuário ${username} recuperado e rodando com sucesso!`);
+      } else {
+        throw new Error('Bot não está marcado como rodando após inicialização');
       }
       
     } catch (error) {
       this.recoveryResults.failed++;
       this.recoveryResults.errors.push(`${username}: ${error.message}`);
       logger.error(`❌ Erro ao recuperar bot do usuário ${userId} (${username}):`, error.message);
+      logger.error(`🔍 Stack trace:`, error.stack);
       
       // Marcar como parado em caso de erro
       try {
         await this.stateManager.setBotRunning(userId, false);
+        logger.info(`🛑 Bot marcado como parado para usuário ${username} devido ao erro`);
       } catch (dbError) {
         logger.error(`Erro ao marcar bot como parado para usuário ${userId}:`, dbError);
       }
@@ -189,26 +217,128 @@ export default class AutoRecovery {
   }
 
   /**
+   * Restaurar estado do bot de forma segura
+   */
+  async restoreBotState(userBot, previousState) {
+    try {
+      logger.info(`🔄 Iniciando restauração de estado...`);
+      
+      // Restaurar propriedades básicas
+      if (previousState.currentPrice && previousState.currentPrice > 0) {
+        userBot.currentPrice = previousState.currentPrice;
+        logger.info(`📈 Preço atual restaurado: ${previousState.currentPrice}`);
+      }
+      
+      if (previousState.dailyLow && previousState.dailyLow !== Infinity) {
+        userBot.dailyLow = previousState.dailyLow;
+        logger.info(`📉 Mínima diária restaurada: ${previousState.dailyLow}`);
+      }
+      
+      if (previousState.dailyHigh && previousState.dailyHigh > 0) {
+        userBot.dailyHigh = previousState.dailyHigh;
+        logger.info(`📈 Máxima diária restaurada: ${previousState.dailyHigh}`);
+      }
+      
+      if (previousState.dailyTrades && previousState.dailyTrades >= 0) {
+        userBot.dailyTrades = previousState.dailyTrades;
+        logger.info(`📊 Trades diários restaurados: ${previousState.dailyTrades}`);
+      }
+      
+      if (previousState.totalProfit !== undefined) {
+        userBot.totalProfit = previousState.totalProfit;
+        logger.info(`💰 Lucro total restaurado: ${previousState.totalProfit}`);
+      }
+      
+      if (previousState.activeCoin && previousState.activeCoin !== '-') {
+        userBot.activeCoin = previousState.activeCoin;
+        logger.info(`🪙 Moeda ativa restaurada: ${previousState.activeCoin}`);
+      }
+      
+      if (previousState.lastBuyTime) {
+        userBot.lastBuyTime = new Date(previousState.lastBuyTime);
+        logger.info(`⏰ Último tempo de compra restaurado: ${previousState.lastBuyTime}`);
+      }
+      
+      // Restaurar histórico de preços (apenas dados recentes)
+      if (previousState.priceHistory && Array.isArray(previousState.priceHistory)) {
+        const now = new Date();
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        
+        const recentHistory = previousState.priceHistory
+          .filter(entry => {
+            if (!entry || !entry.timestamp || !entry.price) return false;
+            const entryTime = new Date(entry.timestamp);
+            return entryTime > oneDayAgo && entry.price > 0;
+          })
+          .slice(-1000); // Manter apenas os últimos 1000 pontos
+        
+        if (recentHistory.length > 0) {
+          userBot.priceHistory = recentHistory;
+          logger.info(`📊 Histórico de preços restaurado: ${recentHistory.length} pontos`);
+        }
+      }
+      
+      // Restaurar posições (se existirem)
+      if (previousState.positions && Array.isArray(previousState.positions)) {
+        const validPositions = previousState.positions.filter(pos => {
+          return pos && pos.buyPrice > 0 && pos.quantity > 0 && pos.orderId;
+        });
+        
+        if (validPositions.length > 0) {
+          userBot.positions = validPositions;
+          logger.info(`📋 Posições restauradas: ${validPositions.length} posições`);
+        }
+      }
+      
+      logger.info(`✅ Estado restaurado com sucesso`);
+      
+    } catch (error) {
+      logger.error('❌ Erro ao restaurar estado do bot:', error);
+      // Não falhar a recuperação por causa de erro na restauração
+    }
+  }
+
+  /**
    * Configurar callbacks do bot para WebSocket
    */
   setupBotCallbacks(userBot, userId) {
-    userBot.onStatusUpdate = (status) => {
-      global.broadcastToUser?.(userId, {
-        type: 'status',
-        data: status
-      });
-    };
-    
-    userBot.onLogMessage = (logEntry) => {
-      global.broadcastToUser?.(userId, {
-        type: 'log',
-        data: logEntry
-      });
-    };
-    
-    userBot.onCoinsUpdate = (coinsData) => {
-      global.broadcastToUser?.(userId, coinsData);
-    };
+    try {
+      if (typeof global.broadcastToUser === 'function') {
+        userBot.onStatusUpdate = (status) => {
+          global.broadcastToUser(userId, {
+            type: 'status',
+            data: status
+          });
+        };
+        
+        userBot.onLogMessage = (logEntry) => {
+          global.broadcastToUser(userId, {
+            type: 'log',
+            data: logEntry
+          });
+        };
+        
+        userBot.onCoinsUpdate = (coinsData) => {
+          global.broadcastToUser(userId, coinsData);
+        };
+        
+        logger.info(`✅ Callbacks WebSocket configurados para usuário ${userId}`);
+      } else {
+        logger.warn(`⚠️ Função broadcastToUser não disponível, callbacks não configurados`);
+        
+        // Configurar callbacks vazios para evitar erros
+        userBot.onStatusUpdate = () => {};
+        userBot.onLogMessage = () => {};
+        userBot.onCoinsUpdate = () => {};
+      }
+    } catch (error) {
+      logger.error('Erro ao configurar callbacks WebSocket:', error);
+      
+      // Configurar callbacks vazios em caso de erro
+      userBot.onStatusUpdate = () => {};
+      userBot.onLogMessage = () => {};
+      userBot.onCoinsUpdate = () => {};
+    }
   }
 
   /**
@@ -243,15 +373,21 @@ export default class AutoRecovery {
     const checkInterval = 1000; // 1 segundo
     let waitTime = 0;
     
+    logger.info('⏳ Aguardando sistema estar pronto...');
+    
     while (waitTime < maxWaitTime) {
       // Verificar se componentes essenciais estão disponíveis
-      if (global.db && global.authManager && global.broadcastToUser) {
+      if (global.db && global.authManager) {
         logger.info('✅ Sistema pronto para recuperação');
         return;
       }
       
       await this.sleep(checkInterval);
       waitTime += checkInterval;
+      
+      if (waitTime % 5000 === 0) {
+        logger.info(`⏳ Aguardando sistema... ${waitTime/1000}s`);
+      }
     }
     
     logger.warn('⚠️ Sistema pode não estar totalmente pronto, prosseguindo com recuperação');
@@ -275,6 +411,10 @@ export default class AutoRecovery {
     if (errors.length > 0) {
       logger.warn('❌ Erros durante a recuperação:');
       errors.forEach(error => logger.warn(`  - ${error}`));
+    }
+    
+    if (failed === 0 && successful > 0) {
+      logger.info('🎉 Recuperação automática 100% bem-sucedida!');
     }
   }
 

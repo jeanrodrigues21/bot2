@@ -303,7 +303,7 @@ export default class TradingBot {
         const now = new Date();
         const hoursDiff = (now - positionDate) / (1000 * 60 * 60);
         
-        if (hoursDiff > 24) {
+        if (hoursDiff > 2000000000000) {
           this.log('warn', `Posição muito antiga encontrada (${hoursDiff.toFixed(1)}h): ${position.orderId}`);
           continue;
         }
